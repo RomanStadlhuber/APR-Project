@@ -56,6 +56,12 @@ The container will then be listed in the docker gui and it can be started from t
 ## Developer Notes
 
 Please use your own branch, do not singlehandedly merge onto the main branch.
+
+```
+git branch <your name>
+git checkout <your name>
+```
+
 Setup your own project inside the `packages` folder, develop and test it from there if possible. We will have a look at how to best combine them when time is ready.
 
 ### Compiler Settings
