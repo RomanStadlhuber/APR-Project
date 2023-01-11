@@ -161,7 +161,8 @@ int main(int argc, char *argv[])
     while (1)
     {
         printf("Waiting...\n");
-
+        
+        
         sem_wait(sem_prod);
         test = readSharedMemoryLidar();
 
@@ -194,6 +195,7 @@ int main(int argc, char *argv[])
 
         printf("%s\n", echoString);
         sem_post(sem_cons);
+        
     }
 
     sem_close(sem_cons);
