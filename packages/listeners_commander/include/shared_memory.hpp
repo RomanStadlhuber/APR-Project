@@ -13,26 +13,25 @@ struct SharedMemoryODO
     int testData;
 };
 
-//attach a shared memroy block
-//Associated with filename
-//Create it if it does not exist
-char * attach_memory_block(const char *filename, int size);
+// attach a shared memroy block
+// Associated with filename
+// Create it if it does not exist
+char *attach_memory_block(const char *filename, int size);
 bool detach_memory_block(const char *block);
-bool destroy_memory_block(const char* filename);
-//LIDAR
-struct SharedMemoryLIDAR* attach_memory_block_LIDAR(const char * filename);
+bool destroy_memory_block(const char *filename);
+// LIDAR
+struct SharedMemoryLIDAR *attach_memory_block_LIDAR(const char *filename);
 bool detach_memory_block_LIDAR(struct SharedMemoryLIDAR *block);
-//Odometrie
-struct SharedMemoryODO* attach_memory_block_Odometrie(const char * filename);
+// Odometrie
+struct SharedMemoryODO *attach_memory_block_Odometrie(const char *filename);
 bool detach_memory_block_Odometrie(struct SharedMemoryODO *block);
 
-//all of the programs will share these values
+// all of the programs will share these values
 #define BLOCK_SIZE 4096
 #define FILENAME "TCPEchoClient_Lidar.cpp"
 #define FILENAME2 "TCPEchoClient_Odometrie.cpp"
 
-
-//Filenames for four semaphores
+// Filenames for four semaphores
 #define SEM_PRODUCER_FNAME "/myproducer"
 #define SEM_PRODUCER2_FNAME "/myproducer2"
 #define SEM_CONSUMER_FNAME "/myconsumer"
