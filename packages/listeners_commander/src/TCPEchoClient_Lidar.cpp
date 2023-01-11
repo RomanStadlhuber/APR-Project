@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
         // printf("%s", echoBuffer);      /* Print the echo buffer */
         std::cout << echoBuffer << std::endl;
         std::cout << getMessage(echoBuffer, "--START---", "___END___") << std::endl;
-
+        //Überprüfen ob die Messages auch ganz ist => min. Länge => dann if => wenn erfüllt auf den ShMem schreiben
         writeSharedMemory(block, test);
         test->testData++;
         sem_post(sem_prod);

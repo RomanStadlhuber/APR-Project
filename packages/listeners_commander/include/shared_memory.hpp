@@ -28,8 +28,10 @@ bool detach_memory_block_Odometrie(struct SharedMemoryODO *block);
 
 // all of the programs will share these values
 #define BLOCK_SIZE 4096
-#define FILENAME "/apr/shmem_lidar"
-#define FILENAME2 "/apr/shmem_odom"
+#define FILENAME "src/TCPEchoClient_Lidar.cpp"
+#define FILENAME2 "src/TCPEchoClient_Odometrie.cpp"
+//define FILENAME "/apr/shmem_lidar"
+//#define FILENAME2 "/apr/shmem_odom"
 
 // Filenames for four semaphores
 #define SEM_PRODUCER_FNAME "/myproducer"
