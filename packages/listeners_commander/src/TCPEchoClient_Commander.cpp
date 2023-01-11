@@ -193,7 +193,6 @@ int main(int argc, char *argv[])
             printf("send() sent a different number of bytes than expected");
 
         printf("%s\n", echoString);
-        sleep(1);
         sem_post(sem_cons);
     }
 
