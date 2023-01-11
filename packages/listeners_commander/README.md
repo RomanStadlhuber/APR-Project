@@ -1,4 +1,18 @@
+## Build with CMake
+
+```bash
+# create a build directory
+mkdir build
+# generate the build files and run the build
+cmake -S . -B build/
+cmake --build build/
+```
+
+
 //With test Simulation:
+
+
+
 
 Start test Simulation
 

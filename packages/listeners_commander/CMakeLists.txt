@@ -25,3 +25,25 @@ target_link_libraries(${PROJECT_NAME}_odometry
     Threads::Threads
 )
 
+# the Lidar listener executable
+add_executable(${PROJECT_NAME}_lidar
+    src/TCPEchoClient_Lidar.cpp
+)
+# add shmem dependency to listeners
+target_link_libraries(${PROJECT_NAME}_lidar
+    PRIVATE
+    ${PROJECT_NAME}_shared_mem_lib
+    Threads::Threads
+)
+
+
+# the commander listener executable
+add_executable(${PROJECT_NAME}_commander
+    src/TCPEchoClient_Commander.cpp
+)
+# add shmem dependency to listeners
+target_link_libraries(${PROJECT_NAME}_commander
+    PRIVATE
+    ${PROJECT_NAME}_shared_mem_lib
+    Threads::Threads
+)
