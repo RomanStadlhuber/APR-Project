@@ -159,6 +159,7 @@ int main(int argc, char *argv[])
         totalBytesRcvd += bytesRcvd;  /* Keep tally of total bytes */
         echoBuffer[bytesRcvd] = '\0'; /* Terminate the string! */
         // printf("%s", echoBuffer);      /* Print the echo buffer */
+        std::cout << echoBuffer << std::endl;
         std::cout << getMessage(echoBuffer, "--START---", "___END___") << std::endl;
 
         writeSharedMemory(block, test);
