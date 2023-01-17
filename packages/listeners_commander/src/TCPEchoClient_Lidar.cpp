@@ -19,7 +19,7 @@ sem_t *sem_prod;
 sem_t *sem_cons;
 struct SharedMemoryLIDAR *block;
 
-#define RCVBUFSIZE 14000 /* Size of receive buffer */
+#define RCVBUFSIZE 10000 /* Size of receive buffer */
 
 // Compile with:  g++ TCPEchoClient_Lidar.cpp shared_memory.cpp -lpthread  -o TCPEchoClient_Lidar
 // Start with: ./TCPEchoClient_Lidar
@@ -82,6 +82,30 @@ void writeSharedMemory(struct SharedMemoryLIDAR *block, struct SharedMemoryLIDAR
     // strncpy(block, testChar, BLOCK_SIZE);
 }
 
+int checkMessage(const std::string &buffer, const std::string &start_delimimter, const std::string &ende_delimimter)
+{
+    // std::cout << s << std::endl;
+    if(buffer.length() <= start_delimimter.length() || buffer.length() <= ende_delimimter.length() )
+    {
+        printf("Buffer lenght");
+        return 0;
+    }
+    unsigned pos_start_delimimter = buffer.find(start_delimimter, 0);
+    if(pos_start_delimimter == -1)
+    {
+        printf("del 1 not found");
+        return 0;
+    }
+    unsigned pos_ende_delimimter = buffer.find(ende_delimimter, pos_start_delimimter);
+    if(pos_ende_delimimter  == -1)
+    {
+        printf("del 2 not found");
+        return 0;
+    }
+   
+    return 1;
+}
+
 std::string getMessage(const std::string &buffer, const std::string &start_delimimter, const std::string &ende_delimimter)
 {
     // std::cout << s << std::endl;
@@ -134,7 +158,7 @@ int main(int argc, char *argv[])
         printf("connect() failed");
 
     //---------------------------------------------------------------------------
-    sleep(1);
+    //sleep(1);
     greatSharedMemory();
     signal(SIGINT, signalHandler); // catch SIGINT
 
@@ -144,7 +168,7 @@ int main(int argc, char *argv[])
     //---------------------------------------------------------------------------
 
     echoStringLen = strlen(echoString); /* Determine input length */
-
+    int count = 0;
     /* Receive the same string back from the server */
     totalBytesRcvd = 0;
     printf("Received: "); /* Setup to print the echoed string */
@@ -153,19 +177,34 @@ int main(int argc, char *argv[])
         /* Receive up to the buffer size (minus 1 to leave space for
            a null terminator) bytes from the sender */
 
-        sem_wait(sem_cons);
+        
         if ((bytesRcvd = recv(sock, echoBuffer, RCVBUFSIZE - 1, 0)) <= 0)
             printf("recv() failed or connection closed prematurely");
         totalBytesRcvd += bytesRcvd;  /* Keep tally of total bytes */
         echoBuffer[bytesRcvd] = '\0'; /* Terminate the string! */
         // printf("%s", echoBuffer);      /* Print the echo buffer */
         std::cout << echoBuffer << std::endl;
-        std::cout << getMessage(echoBuffer, "--START---", "___END___") << std::endl;
-        //Überprüfen ob die Messages auch ganz ist => min. Länge => dann if => wenn erfüllt auf den ShMem schreiben
+        std::cout << "______________________________-" << std::endl;
+        
+        if(checkMessage(echoBuffer, "--START---", "___END___") == 1)
+        {
+            std::cout << getMessage(echoBuffer, "--START---", "___END___") << std::endl;
+            //Überprüfen ob die Messages auch ganz ist => min. Länge => dann if => wenn erfüllt auf den ShMem schreiben
+            test->testData++;
+            
+        }
+        else
+        {
+            count++;
+        }
+
         writeSharedMemory(block, test);
-        test->testData++;
         sem_post(sem_prod);
         printf("waiting\n");
+        sem_wait(sem_cons);
+        printf("\n count = %d\n", count);
+        //sleep(0.0001);
+        
     }
     printf("\n"); /* Print a final linefeed */
 

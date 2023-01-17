@@ -19,7 +19,7 @@ sem_t *sem_prod2;
 sem_t *sem_cons2;
 struct SharedMemoryODO *block;
 
-#define RCVBUFSIZE 1800 /* Size of receive buffer */
+#define RCVBUFSIZE 5000 /* Size of receive buffer */
 
 // Compile with:  g++ TCPEchoClient_Odometrie.cpp shared_memory.cpp -lpthread  -o TCPEchoClient_Odometrie
 // Start with: ./TCPEchoClient_Odometrie 127.0.0.1 10002
@@ -80,6 +80,30 @@ void writeSharedMemory(struct SharedMemoryODO *block, struct SharedMemoryLIDAR *
     block->testData = data->testData;
     printf("Writing: \"%d\"\n", block->testData);
     // strncpy(block, testChar, BLOCK_SIZE);
+}
+
+int checkMessage(const std::string &buffer, const std::string &start_delimimter, const std::string &ende_delimimter)
+{
+    // std::cout << s << std::endl;
+    if(buffer.length() <= start_delimimter.length() || buffer.length() <= ende_delimimter.length() )
+    {
+        printf("Buffer lenght");
+        return 0;
+    }
+    unsigned pos_start_delimimter = buffer.find(start_delimimter, 0);
+    if(pos_start_delimimter == -1)
+    {
+        printf("del 1 not found");
+        return 0;
+    }
+    unsigned pos_ende_delimimter = buffer.find(ende_delimimter, pos_start_delimimter);
+    if(pos_ende_delimimter  == -1)
+    {
+        printf("del 2 not found");
+        return 0;
+    }
+   
+    return 1;
 }
 
 std::string getMessage(const std::string &buffer, const std::string &start_delimimter, const std::string &ende_delimimter)
@@ -146,6 +170,7 @@ int main(int argc, char *argv[])
 
     /* Receive the same string back from the server */
     totalBytesRcvd = 0;
+    int count = 0;
     printf("Received: "); /* Setup to print the echoed string */
     while (1)
     {
@@ -157,12 +182,21 @@ int main(int argc, char *argv[])
         totalBytesRcvd += bytesRcvd;  /* Keep tally of total bytes */
         echoBuffer[bytesRcvd] = '\0'; /* Terminate the string! */
         // printf("%s", echoBuffer);      /* Print the echo buffer */
-        std::cout << getMessage(echoBuffer, "--START---", "___END___") << std::endl;
-
+        if(checkMessage(echoBuffer, "--START---", "___END___") == 1)
+        {
+            std::cout << getMessage(echoBuffer, "--START---", "___END___") << std::endl;
+            test->testData++;
+          
+        }
+        else
+        {
+            count++;
+        }
         writeSharedMemory(block, test);
 
         sem_post(sem_prod2);
         printf("\nwaiting\n");
+        printf("\n count = %d\n", count);
     }
     printf("\n"); /* Print a final linefeed */
 
