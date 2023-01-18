@@ -118,7 +118,7 @@ std::string getMessage(const std::string &buffer, const std::string &start_delim
 
 int main(int argc, char *argv[])
 {
-    // int sock;                        /* Socket descriptor */
+    int sock;                        /* Socket descriptor */
     struct sockaddr_in echoServAddr; /* Echo server address */
     unsigned short echoServPort;     /* Echo server port */
     char *servIP;                    /* Server IP address (dotted quad) */
