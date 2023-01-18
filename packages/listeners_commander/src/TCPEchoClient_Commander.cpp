@@ -22,10 +22,12 @@
 #define BLOCK_SIZE 4096
 
 int sock; /* Socket descriptor */
-sem_t *sem_prod;
-sem_t *sem_cons;
-sem_t *sem_prod2;
-sem_t *sem_cons2;
+sem_t *sem_prod_lidar;
+sem_t *sem_cons_lidar;
+sem_t *sem_prod_odo;
+sem_t *sem_cons_odo;
+sem_t *init_lidar;
+sem_t *init_odo;
 struct SharedMemoryLIDAR *block;
 struct SharedMemoryODO *block2;
 
@@ -35,10 +37,10 @@ struct SharedMemoryODO *block2;
 void signalHandler(int sig)
 {
     printf("Close all\n");
-    sem_close(sem_cons2);
-    sem_close(sem_prod2);
-    sem_close(sem_cons);
-    sem_close(sem_prod);
+    sem_close(sem_cons_odo);
+    sem_close(sem_prod_odo);
+    sem_close(sem_cons_lidar);
+    sem_close(sem_prod_lidar);
 
     detach_memory_block_LIDAR(block);
     detach_memory_block_Odometrie(block2);
@@ -48,39 +50,58 @@ void signalHandler(int sig)
 
 } // end producerHandler
 
+
 void greateSemahpore()
 {
-    sem_unlink(SEM_CONSUMER_FNAME);
-    sem_unlink(SEM_PRODUCER_FNAME);
-    sem_unlink(SEM_CONSUMER2_FNAME);
-    sem_unlink(SEM_PRODUCER2_FNAME);
+    sem_unlink(SEM_CONSUMER_LIDAR);
+    sem_unlink(SEM_PRODUCER_ODO);
+    sem_unlink(SEM_CONSUMER_ODO);
+    sem_unlink(SEM_PRODUCER_LIDAR);
+    sem_unlink(SEM_INIT_LIDAR);
+    sem_unlink(SEM_INIT_ODO);
 
-    sem_prod = sem_open(SEM_PRODUCER_FNAME, O_CREAT, 0660, 0);
-    if (sem_prod == SEM_FAILED)
+    init_lidar = sem_open(SEM_INIT_LIDAR, O_CREAT, 0777, 0);
+    if (init_lidar == SEM_FAILED)
     {
         // perror("sem_open/producer");
         printf("open Semaphore failed\n");
         exit(EXIT_FAILURE);
     }
 
-    sem_cons = sem_open(SEM_CONSUMER_FNAME, O_CREAT, 0660, 1);
-    if (sem_cons == SEM_FAILED)
+    init_odo = sem_open(SEM_INIT_ODO, O_CREAT, 0777, 0);
+    if (init_odo == SEM_FAILED)
+    {
+        // perror("sem_open/producer");
+        printf("open Semaphore failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    sem_prod_lidar = sem_open(SEM_PRODUCER_LIDAR, O_CREAT, 0777, 0);
+    if (sem_prod_lidar == SEM_FAILED)
+    {
+        // perror("sem_open/producer");
+        printf("open Semaphore failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    sem_cons_lidar = sem_open(SEM_CONSUMER_LIDAR, O_CREAT, 0777, 0);
+    if (sem_cons_lidar == SEM_FAILED)
     {
         // perror("sem_open/consumer");
         printf("open Semaphore failed\n");
         exit(EXIT_FAILURE);
     }
     // printf("open Semaphore succesfull\n");
-    sem_prod2 = sem_open(SEM_PRODUCER2_FNAME, O_CREAT, 0660, 0);
-    if (sem_prod2 == SEM_FAILED)
+    sem_prod_odo = sem_open(SEM_PRODUCER_ODO, O_CREAT, 0777, 0);
+    if (sem_prod_odo == SEM_FAILED)
     {
         // perror("sem_open/producer");
         printf("open Semaphore failed\n");
         exit(EXIT_FAILURE);
     }
 
-    sem_cons2 = sem_open(SEM_CONSUMER2_FNAME, O_CREAT, 0660, 1);
-    if (sem_cons2 == SEM_FAILED)
+    sem_cons_odo = sem_open(SEM_CONSUMER_ODO, O_CREAT, 0777, 0);
+    if (sem_cons_odo == SEM_FAILED)
     {
         // perror("sem_open/consumer");
         printf("open Semaphore failed\n");
@@ -91,7 +112,7 @@ void greateSemahpore()
 struct SharedMemoryLIDAR *readSharedMemoryLidar()
 {
     printf("Herer...\n");
-    block = attach_memory_block_LIDAR(FILENAME);
+    block = attach_memory_block_LIDAR(FILENAME_LIDAR);
     if (block == NULL)
     {
         printf("Error: could not get block\n");
@@ -104,7 +125,7 @@ struct SharedMemoryLIDAR *readSharedMemoryLidar()
 struct SharedMemoryODO *readSharedMemoryOdometrie()
 {
     printf("Herer...\n");
-    block2 = attach_memory_block_Odometrie(FILENAME2);
+    block2 = attach_memory_block_Odometrie(FILENAME_ODO);
     if (block2 == NULL)
     {
         printf("Error: could not get block\n");
@@ -154,27 +175,36 @@ int main(int argc, char *argv[])
     //------------------------------------------------------------------------
 
     greateSemahpore();
+
     signal(SIGINT, signalHandler); // catch SIGINT
-    struct SharedMemoryLIDAR *test;
-    struct SharedMemoryODO *test2;
+    
+    sem_wait(init_lidar);
+    sem_wait(init_odo);
+    sem_post(sem_cons_lidar);
 
     while (1)
     {
         printf("Waiting...\n");
+                
+        sem_wait(sem_prod_lidar);
+
+        block = readSharedMemoryLidar();
         
+        printf("Reading Lidar: \"%d\"\n", block->testData);
+
+        detach_memory_block_LIDAR(block);
+
+        sem_post(sem_cons_odo);
+
+        sem_wait(sem_prod_odo);
+
+        block2 = readSharedMemoryOdometrie();
+
+        printf("Reading Odometrie: \"%d\"\n", block2->testData);
+
+        detach_memory_block_Odometrie(block2);
+
         
-        sem_wait(sem_prod);
-        test = readSharedMemoryLidar();
-
-        printf("Reading Lidar: \"%d\"\n", test->testData);
-
-        sem_post(sem_cons2);
-
-        sem_wait(sem_prod2);
-        test2 = readSharedMemoryOdometrie();
-
-        printf("Reading Odometrie: \"%d\"\n", test2->testData);
-
         //------------------------------------------------------------------------
         // Great Message-String
         float lin = 0.3;
@@ -194,14 +224,17 @@ int main(int argc, char *argv[])
             printf("send() sent a different number of bytes than expected");
 
         printf("%s\n", echoString);
-        sem_post(sem_cons);
+
+        sem_post(sem_cons_lidar);
         
     }
 
-    sem_close(sem_cons);
-    sem_close(sem_prod);
-    sem_close(sem_cons2);
-    sem_close(sem_prod2);
+    sem_close(sem_cons_lidar);
+    sem_close(sem_prod_lidar);
+    sem_close(sem_cons_odo);
+    sem_close(sem_prod_odo);
+    sem_close(init_lidar);
+    sem_close(init_odo);
 
     detach_memory_block_LIDAR(block);
     detach_memory_block_Odometrie(block2);

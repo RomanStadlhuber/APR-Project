@@ -15,8 +15,9 @@
 #define BLOCK_SIZE 4096
 
 int sock; /* Socket descriptor */
-sem_t *sem_prod;
-sem_t *sem_cons;
+sem_t *sem_prod_lidar;
+sem_t *sem_cons_lidar;
+sem_t *init_lidar;
 struct SharedMemoryLIDAR *block;
 
 #define RCVBUFSIZE 10000 /* Size of receive buffer */
@@ -27,56 +28,62 @@ struct SharedMemoryLIDAR *block;
 void signalHandler(int sig)
 {
     printf("Close all\n");
-    sem_close(sem_cons);
-    sem_close(sem_prod);
+    sem_close(sem_cons_lidar);
+    sem_close(sem_prod_lidar);
+    sem_close(init_lidar);
 
     detach_memory_block_LIDAR(block);
-    if (destroy_memory_block(FILENAME))
+    if (destroy_memory_block(FILENAME_LIDAR))
     {
-        printf("Destroyed block: %s\n", FILENAME);
+        printf("Destroyed block: %s\n", FILENAME_LIDAR);
     }
     else
     {
-        printf("Could not destroy block: %s\n", FILENAME);
+        printf("Could not destroy block: %s\n", FILENAME_LIDAR);
     }
     close(sock);
     exit(0);
 
 } // end producerHandler
 
-int greatSharedMemory()
+int attachSemahpore()
 {
     // Setup some semaphores
-    sem_prod = sem_open(SEM_PRODUCER_FNAME, 0);
-    if (sem_prod == SEM_FAILED)
+    sem_prod_lidar = sem_open(SEM_PRODUCER_LIDAR, 0);
+    if (sem_prod_lidar == SEM_FAILED)
     {
         printf("open Semaphore failed");
         // perror("sem_open/producer");
         exit(EXIT_FAILURE);
     }
 
-    sem_cons = sem_open(SEM_CONSUMER_FNAME, 0);
-    if (sem_cons == SEM_FAILED)
+    sem_cons_lidar = sem_open(SEM_CONSUMER_LIDAR, 0);
+    if (sem_cons_lidar == SEM_FAILED)
     {
         printf("open Semaphore failed");
         // perror("sem_open/consumer");
         exit(EXIT_FAILURE);
     }
 
-    // grab the shared memory block
-
-    block = attach_memory_block_LIDAR(FILENAME);
-    if (block == NULL)
+    init_lidar = sem_open(SEM_INIT_LIDAR, 0);
+    if (init_lidar == SEM_FAILED)
     {
-        printf("Error: could not get block\n");
-        return -1;
+        printf("open Semaphore failed");
+        // perror("sem_open/consumer");
+        exit(EXIT_FAILURE);
     }
 
     return 0;
 }
 
 void writeSharedMemory(struct SharedMemoryLIDAR *block, struct SharedMemoryLIDAR *data)
-{
+{   
+    block = attach_memory_block_LIDAR(FILENAME_LIDAR);
+    if (block == NULL)
+    {
+        printf("Error: could not get block\n");
+        // return -1;
+    }
     block->testData = data->testData;
     printf("Writing: \"%d\"\n", block->testData);
     // strncpy(block, testChar, BLOCK_SIZE);
@@ -159,8 +166,10 @@ int main(int argc, char *argv[])
 
     //---------------------------------------------------------------------------
     //sleep(1);
-    greatSharedMemory();
+    attachSemahpore();
     signal(SIGINT, signalHandler); // catch SIGINT
+
+    sem_post(init_lidar);
 
     struct SharedMemoryLIDAR *test = new SharedMemoryLIDAR();
     test->testData = 5;
@@ -177,7 +186,8 @@ int main(int argc, char *argv[])
         /* Receive up to the buffer size (minus 1 to leave space for
            a null terminator) bytes from the sender */
 
-        
+        sem_wait(sem_cons_lidar);
+
         if ((bytesRcvd = recv(sock, echoBuffer, RCVBUFSIZE - 1, 0)) <= 0)
             printf("recv() failed or connection closed prematurely");
         totalBytesRcvd += bytesRcvd;  /* Keep tally of total bytes */
@@ -199,19 +209,22 @@ int main(int argc, char *argv[])
         }
 
         writeSharedMemory(block, test);
-        sem_post(sem_prod);
+        detach_memory_block_LIDAR(block);
+
+        sem_post(sem_prod_lidar);
+
         printf("waiting\n");
-        sem_wait(sem_cons);
         printf("\n count = %d\n", count);
         //sleep(0.0001);
         
     }
     printf("\n"); /* Print a final linefeed */
 
-    sem_close(sem_cons);
-    sem_close(sem_prod);
+    sem_close(sem_cons_lidar);
+    sem_close(sem_prod_lidar);
+    sem_close(init_lidar);
 
-    detach_memory_block_LIDAR(block);
+    //detach_memory_block_LIDAR(block);
     close(sock);
     exit(0);
 }
