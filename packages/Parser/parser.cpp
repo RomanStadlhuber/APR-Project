@@ -7,6 +7,7 @@
 using json = nlohmann::json;
 using namespace std;
 
+// struchts to save the json massage
 struct stamp{
     public:
         int secs = 0;
