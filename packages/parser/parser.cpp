@@ -61,12 +61,15 @@ struct twist{
         vector<double> covariance;
 };
 
+ 
+
 struct msgOddomtr{
     public:
         header header;
         string child_frame_id;
         pose pose;
-        twist twist;
+        // twist twist; // twist is not needed
+
 
 };
 
@@ -122,6 +125,7 @@ int main()
     j_msg_O["pose"]["pose"]["orientation"]["x"].get_to(msgO.pose.orientation.z);
     j_msg_O["pose"]["pose"]["orientation"]["x"].get_to(msgO.pose.orientation.w);
     j_msg_O["pose"]["covariance"].get_to(msgO.pose.covariance);
+    /* Twist is not needed
     j_msg_O["twist"]["twist"]["linear"]["x"].get_to(msgO.twist.linear.x);
     j_msg_O["twist"]["twist"]["linear"]["y"].get_to(msgO.twist.linear.y);
     j_msg_O["twist"]["twist"]["linear"]["z"].get_to(msgO.twist.linear.z);
@@ -129,7 +133,7 @@ int main()
     j_msg_O["twist"]["twist"]["angular"]["y"].get_to(msgO.twist.angular.y);
     j_msg_O["twist"]["twist"]["angular"]["z"].get_to(msgO.twist.angular.z);
     j_msg_O["twist"]["covariance"].get_to(msgO.twist.covariance);
-
+    */
 
     // Test print:
     cout << "TEST PRINT:\n\nScan Id: \t\t" << msgL.header.frame_id << endl
@@ -145,8 +149,7 @@ int main()
     << "Seq. Nr: \t\t" << msgO.header.seq << endl 
     << "Sek.: \t\t\t" << msgO.header.stamp.secs << endl 
     << "Covariance at pos. 8: \t" << msgO.pose.covariance.at(8) << endl 
-    << "X-Coordinates: \t\t" << msgO.pose.orientation.x << endl 
-    << "Twist angular w: \t" << msgO.twist.angular.w << endl << endl;
+    << "X-Coordinates: \t\t" << msgO.pose.orientation.x << endl;
 
     return 0;
 }
