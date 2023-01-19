@@ -1,5 +1,9 @@
 # Advanced Programming for Robotics - Project Page
 
+## Project Structure
+
+![Project Structure Flowchart](Flussdiagramm.png)
+
 ## Setup and Quick Start
 
 If possible, please use the docker container. Install and setup from there on.
