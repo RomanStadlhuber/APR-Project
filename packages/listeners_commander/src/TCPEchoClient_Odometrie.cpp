@@ -11,12 +11,15 @@
 #include <signal.h>
 
 #include <shared_memory.hpp>
+//#include "shared_memory.hpp"
 
 #define BLOCK_SIZE 4096
 
 int sock; /* Socket descriptor */
-sem_t *sem_prod2;
-sem_t *sem_cons2;
+sem_t *sem_full_odo;
+sem_t *sem_empty_odo;
+sem_t *init_odo;
+sem_t *mutex_odo;
 struct SharedMemoryODO *block;
 
 #define RCVBUFSIZE 5000 /* Size of receive buffer */
@@ -27,56 +30,71 @@ struct SharedMemoryODO *block;
 void signalHandler(int sig)
 {
     printf("Close all\n");
-    sem_close(sem_cons2);
-    sem_close(sem_prod2);
+    sem_close(sem_empty_odo);
+    sem_close(sem_full_odo);
+    sem_close(init_odo);
+    sem_close(mutex_odo);
 
     detach_memory_block_Odometrie(block);
-    if (destroy_memory_block(FILENAME2))
+    if (destroy_memory_block(FILENAME_ODO))
     {
-        printf("Destroyed block: %s\n", FILENAME2);
+        printf("Destroyed block: %s\n", FILENAME_ODO);
     }
     else
     {
-        printf("Could not destroy block: %s\n", FILENAME2);
+        printf("Could not destroy block: %s\n", FILENAME_ODO);
     }
     close(sock);
     exit(0);
 
 } // end producerHandler
 
-int greatSharedMemory()
+int attachSemaphores()
 {
     // Setup some semaphores
-    sem_prod2 = sem_open(SEM_PRODUCER2_FNAME, 0);
-    if (sem_prod2 == SEM_FAILED)
+    sem_full_odo = sem_open(FULL_ODO, 0);
+    if (sem_full_odo == SEM_FAILED)
     {
         printf("open Semaphore failed");
         // perror("sem_open/producer");
         exit(EXIT_FAILURE);
     }
 
-    sem_cons2 = sem_open(SEM_CONSUMER2_FNAME, 0);
-    if (sem_cons2 == SEM_FAILED)
+    sem_empty_odo = sem_open(EMPTY_ODO, 0);
+    if (sem_empty_odo == SEM_FAILED)
     {
         printf("open Semaphore failed");
         // perror("sem_open/consumer");
         exit(EXIT_FAILURE);
     }
 
-    // grab the shared memory block
-
-    block = attach_memory_block_Odometrie(FILENAME2);
-    if (block == NULL)
+    init_odo = sem_open(SEM_INIT_ODO, 0);
+    if (init_odo == SEM_FAILED)
     {
-        printf("Error: could not get block\n");
-        return -1;
+        printf("open Semaphore failed");
+        // perror("sem_open/consumer");
+        exit(EXIT_FAILURE);
+    }
+
+    mutex_odo = sem_open(MUTEX_ODO, 0);
+    if (mutex_odo == SEM_FAILED)
+    {
+        printf("open Semaphore failed");
+        // perror("sem_open/consumer");
+        exit(EXIT_FAILURE);
     }
 
     return 0;
 }
 
-void writeSharedMemory(struct SharedMemoryODO *block, struct SharedMemoryLIDAR *data)
+void writeSharedMemory(struct SharedMemoryODO *block, struct SharedMemoryODO *data)
 {
+    block = attach_memory_block_Odometrie(FILENAME_ODO);
+    if (block == NULL)
+    {
+        printf("Error: could not get block\n");
+        // return -1;
+    }
     block->testData = data->testData;
     printf("Writing: \"%d\"\n", block->testData);
     // strncpy(block, testChar, BLOCK_SIZE);
@@ -144,6 +162,9 @@ int main(int argc, char *argv[])
         echoServPort = 7; /* 7 is the well-known port for the echo service */
 
     /* Create a reliable, stream socket using TCP */
+
+     //---------------------------------------------------------------------------
+
     if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
         printf("socket() failed");
 
@@ -159,10 +180,16 @@ int main(int argc, char *argv[])
 
     //---------------------------------------------------------------------------
 
-    greatSharedMemory();
+    attachSemaphores();
     signal(SIGINT, signalHandler); // catch SIGINT
-    struct SharedMemoryLIDAR *test = new SharedMemoryLIDAR();
+    
+    sem_post(init_odo);
+    
+    close(sock);
+
+    struct SharedMemoryODO *test = new SharedMemoryODO();
     test->testData = 100;
+   
 
     //---------------------------------------------------------------------------
 
@@ -176,12 +203,32 @@ int main(int argc, char *argv[])
     {
         /* Receive up to the buffer size (minus 1 to leave space for
            a null terminator) bytes from the sender */
-        sem_wait(sem_cons2);
+        sem_wait(sem_empty_odo);
+        sem_wait(mutex_odo);
+
+         printf("Wait...\n");
+
+         if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+        printf("socket() failed");
+
+    /* Construct the server address structure */
+    memset(&echoServAddr, 0, sizeof(echoServAddr));   /* Zero out structure */
+    echoServAddr.sin_family = AF_INET;                /* Internet address family */
+    echoServAddr.sin_addr.s_addr = inet_addr(servIP); /* Server IP address */
+    echoServAddr.sin_port = htons(echoServPort);      /* Server port */
+
+    /* Establish the connection to the echo server */
+    if (connect(sock, (struct sockaddr *)&echoServAddr, sizeof(echoServAddr)) < 0)
+        printf("connect() failed");
+
+        nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
+        
+
         if ((bytesRcvd = recv(sock, echoBuffer, RCVBUFSIZE - 1, 0)) <= 0)
             printf("recv() failed or connection closed prematurely");
-        totalBytesRcvd += bytesRcvd;  /* Keep tally of total bytes */
-        echoBuffer[bytesRcvd] = '\0'; /* Terminate the string! */
-        // printf("%s", echoBuffer);      /* Print the echo buffer */
+        totalBytesRcvd += bytesRcvd;  
+        echoBuffer[bytesRcvd] = '\0'; 
+        // printf("%s", echoBuffer);      
         if(checkMessage(echoBuffer, "--START---", "___END___") == 1)
         {
             std::cout << getMessage(echoBuffer, "--START---", "___END___") << std::endl;
@@ -192,16 +239,24 @@ int main(int argc, char *argv[])
         {
             count++;
         }
+        
+        close(sock);
+        
         writeSharedMemory(block, test);
+        detach_memory_block_Odometrie(block);
 
-        sem_post(sem_prod2);
+        sem_post(mutex_odo);
+        sem_post(sem_full_odo);
+
         printf("\nwaiting\n");
         printf("\n count = %d\n", count);
     }
     printf("\n"); /* Print a final linefeed */
 
-    sem_close(sem_cons2);
-    sem_close(sem_prod2);
+    sem_close(sem_empty_odo);
+    sem_close(sem_full_odo);
+    sem_close(init_odo);
+    sem_close(mutex_odo);
 
     detach_memory_block_Odometrie(block);
     close(sock);

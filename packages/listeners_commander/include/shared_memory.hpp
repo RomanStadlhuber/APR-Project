@@ -28,16 +28,32 @@ bool detach_memory_block_Odometrie(struct SharedMemoryODO *block);
 
 // all of the programs will share these values
 #define BLOCK_SIZE 4096
-#define FILENAME "src/TCPEchoClient_Lidar.cpp"
-#define FILENAME2 "src/TCPEchoClient_Odometrie.cpp"
+#define FILENAME_LIDAR "src/TCPEchoClient_Lidar.cpp"
+#define FILENAME_ODO "src/TCPEchoClient_Odometrie.cpp"
+
+//#define FILENAME_LIDAR "TCPEchoClient_Lidar.cpp"
+//#define FILENAME_ODO "TCPEchoClient_Odometrie.cpp"
 
 //define FILENAME "/apr/shmem_lidar"
 //#define FILENAME2 "/apr/shmem_odom"
 
 // Filenames for four semaphores
-#define SEM_PRODUCER_FNAME "/myproducer"
-#define SEM_PRODUCER2_FNAME "/myproducer2"
-#define SEM_CONSUMER_FNAME "/myconsumer"
-#define SEM_CONSUMER2_FNAME "/myconsumer2"
+#define SEM_PRODUCER_LIDAR "/myproducerLidar"
+#define SEM_PRODUCER_ODO "/myproducerOdo"
+#define SEM_CONSUMER_LIDAR "/myconsumerLidar"
+#define SEM_CONSUMER_ODO "/myconsumerOdo"
+#define SEM_INIT_LIDAR "/initLidar"
+#define SEM_INIT_ODO "/initOdo"
+
+
+#define FULL_LIDAR "/fullLidar"
+#define FULL_ODO "/fullOdo"
+#define EMPTY_LIDAR "/emptyLidar"
+#define EMPTY_ODO "/emptyOdo"
+#define SEM_INIT_LIDAR "/initLidar"
+#define SEM_INIT_ODO "/initOdo"
+#define MUTEX_LIDAR "/mutexLidar"
+#define MUTEX_ODO "/mutexOdo"
+
 
 #endif
