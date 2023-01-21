@@ -60,6 +60,7 @@ void greateSemahpore()
     sem_unlink(SEM_INIT_LIDAR);
     sem_unlink(SEM_INIT_ODO);
 
+//test - comment
     init_lidar = sem_open(SEM_INIT_LIDAR, O_CREAT, 0777, 0);
     if (init_lidar == SEM_FAILED)
     {
