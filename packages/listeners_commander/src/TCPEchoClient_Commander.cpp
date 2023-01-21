@@ -18,16 +18,19 @@
 #include <sys/shm.h>
 
 #include <shared_memory.hpp>
+//#include "shared_memory.hpp"
 
 #define BLOCK_SIZE 4096
 
 int sock; /* Socket descriptor */
-sem_t *sem_prod_lidar;
-sem_t *sem_cons_lidar;
-sem_t *sem_prod_odo;
-sem_t *sem_cons_odo;
+sem_t *sem_full_lidar;
+sem_t *sem_empty_lidar;
+sem_t *sem_full_odo;
+sem_t *sem_empty_odo;
 sem_t *init_lidar;
 sem_t *init_odo;
+sem_t *mutex_lidar;
+sem_t *mutex_odo;
 struct SharedMemoryLIDAR *block;
 struct SharedMemoryODO *block2;
 
@@ -37,10 +40,14 @@ struct SharedMemoryODO *block2;
 void signalHandler(int sig)
 {
     printf("Close all\n");
-    sem_close(sem_cons_odo);
-    sem_close(sem_prod_odo);
-    sem_close(sem_cons_lidar);
-    sem_close(sem_prod_lidar);
+    sem_close(sem_empty_odo);
+    sem_close(sem_full_odo);
+    sem_close(sem_empty_lidar);
+    sem_close(sem_full_lidar);
+    sem_close(init_lidar);
+    sem_close(init_odo);
+    sem_close(mutex_lidar);
+    sem_close(mutex_odo);
 
     detach_memory_block_LIDAR(block);
     detach_memory_block_Odometrie(block2);
@@ -53,12 +60,14 @@ void signalHandler(int sig)
 
 void greateSemahpore()
 {
-    sem_unlink(SEM_CONSUMER_LIDAR);
-    sem_unlink(SEM_PRODUCER_ODO);
-    sem_unlink(SEM_CONSUMER_ODO);
-    sem_unlink(SEM_PRODUCER_LIDAR);
+    sem_unlink(EMPTY_LIDAR);
+    sem_unlink(FULL_ODO);
+    sem_unlink(EMPTY_ODO);
+    sem_unlink(FULL_LIDAR);
+    sem_unlink(MUTEX_LIDAR);
     sem_unlink(SEM_INIT_LIDAR);
     sem_unlink(SEM_INIT_ODO);
+     sem_unlink(MUTEX_ODO);
 
 //test - comment
     init_lidar = sem_open(SEM_INIT_LIDAR, O_CREAT, 0777, 0);
@@ -77,37 +86,55 @@ void greateSemahpore()
         exit(EXIT_FAILURE);
     }
 
-    sem_prod_lidar = sem_open(SEM_PRODUCER_LIDAR, O_CREAT, 0777, 0);
-    if (sem_prod_lidar == SEM_FAILED)
+    sem_full_lidar = sem_open(FULL_LIDAR, O_CREAT, 0777, 0);
+    if (sem_full_lidar == SEM_FAILED)
     {
         // perror("sem_open/producer");
         printf("open Semaphore failed\n");
         exit(EXIT_FAILURE);
     }
 
-    sem_cons_lidar = sem_open(SEM_CONSUMER_LIDAR, O_CREAT, 0777, 0);
-    if (sem_cons_lidar == SEM_FAILED)
-    {
-        // perror("sem_open/consumer");
-        printf("open Semaphore failed\n");
-        exit(EXIT_FAILURE);
-    }
     // printf("open Semaphore succesfull\n");
-    sem_prod_odo = sem_open(SEM_PRODUCER_ODO, O_CREAT, 0777, 0);
-    if (sem_prod_odo == SEM_FAILED)
+    sem_full_odo = sem_open(FULL_ODO, O_CREAT, 0777, 0);
+    if (sem_full_odo == SEM_FAILED)
     {
         // perror("sem_open/producer");
         printf("open Semaphore failed\n");
         exit(EXIT_FAILURE);
     }
 
-    sem_cons_odo = sem_open(SEM_CONSUMER_ODO, O_CREAT, 0777, 0);
-    if (sem_cons_odo == SEM_FAILED)
+    sem_empty_lidar = sem_open(EMPTY_LIDAR, O_CREAT, 0777, 1);
+    if (sem_empty_lidar == SEM_FAILED)
     {
         // perror("sem_open/consumer");
         printf("open Semaphore failed\n");
         exit(EXIT_FAILURE);
     }
+
+    sem_empty_odo = sem_open(EMPTY_ODO, O_CREAT, 0777, 1);
+    if (sem_empty_odo == SEM_FAILED)
+    {
+        // perror("sem_open/consumer");
+        printf("open Semaphore failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    mutex_lidar = sem_open(MUTEX_LIDAR, O_CREAT, 0777, 1);
+    if (mutex_lidar == SEM_FAILED)
+    {
+        // perror("sem_open/consumer");
+        printf("open Semaphore failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+     mutex_odo = sem_open(MUTEX_ODO, O_CREAT, 0777, 1);
+    if (mutex_odo == SEM_FAILED)
+    {
+        // perror("sem_open/consumer");
+        printf("open Semaphore failed\n");
+        exit(EXIT_FAILURE);
+    }
+
 }
 
 struct SharedMemoryLIDAR *readSharedMemoryLidar()
@@ -136,9 +163,28 @@ struct SharedMemoryODO *readSharedMemoryOdometrie()
     return block2;
 }
 
+
+void connectSocket(struct sockaddr_in echoServAddr, unsigned short echoServPort, char *servIP)
+{
+       /* Create a reliable, stream socket using TCP */
+    if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+        printf("socket() failed");
+
+    /* Construct the server address structure */
+    memset(&echoServAddr, 0, sizeof(echoServAddr));   /* Zero out structure */
+    echoServAddr.sin_family = AF_INET;                /* Internet address family */
+    echoServAddr.sin_addr.s_addr = inet_addr(servIP); /* Server IP address */
+    echoServAddr.sin_port = htons(echoServPort);      /* Server port */
+
+    /* Establish the connection to the echo server */
+    if (connect(sock, (struct sockaddr *)&echoServAddr, sizeof(echoServAddr)) < 0)
+        printf("connect() failed");
+
+}
+
 int main(int argc, char *argv[])
 {
-
+   
     struct sockaddr_in echoServAddr;        /* Echo server address */
     unsigned short echoServPort;            /* Echo server port */
     char *servIP;                           /* Server IP address (dotted quad) */
@@ -157,21 +203,12 @@ int main(int argc, char *argv[])
     if (argc == 3)
         echoServPort = atoi(argv[2]); /* Use given port, if any */
     else
-        echoServPort = 7; /* 7 is the well-known port for the echo service */
+        echoServPort = 9999; /* 7 is the well-known port for the echo service */
 
-    /* Create a reliable, stream socket using TCP */
-    if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
-        printf("socket() failed");
+ 
 
-    /* Construct the server address structure */
-    memset(&echoServAddr, 0, sizeof(echoServAddr));   /* Zero out structure */
-    echoServAddr.sin_family = AF_INET;                /* Internet address family */
-    echoServAddr.sin_addr.s_addr = inet_addr(servIP); /* Server IP address */
-    echoServAddr.sin_port = htons(echoServPort);      /* Server port */
-
-    /* Establish the connection to the echo server */
-    if (connect(sock, (struct sockaddr *)&echoServAddr, sizeof(echoServAddr)) < 0)
-        printf("connect() failed");
+    connectSocket(echoServAddr, echoServPort, servIP);
+    close(sock);
 
     //------------------------------------------------------------------------
 
@@ -181,13 +218,16 @@ int main(int argc, char *argv[])
     
     sem_wait(init_lidar);
     sem_wait(init_odo);
-    sem_post(sem_cons_lidar);
+  
 
     while (1)
     {
-        printf("Waiting...\n");
+        
+        
+        printf("Waiting Lidar...\n");
                 
-        sem_wait(sem_prod_lidar);
+        sem_wait(sem_full_lidar);
+        sem_wait(mutex_lidar);
 
         block = readSharedMemoryLidar();
         
@@ -195,21 +235,37 @@ int main(int argc, char *argv[])
 
         detach_memory_block_LIDAR(block);
 
-        sem_post(sem_cons_odo);
+        sem_post(mutex_lidar);
+        sem_post(sem_empty_lidar);
 
-        sem_wait(sem_prod_odo);
+
+        printf("Waiting Odo...\n");
+
+        
+                
+        sem_wait(sem_full_odo);
+        sem_wait(mutex_odo);
+
+         printf("Wait...sh\n");
 
         block2 = readSharedMemoryOdometrie();
-
-        printf("Reading Odometrie: \"%d\"\n", block2->testData);
+        
+        printf("Reading Odo: \"%d\"\n", block2->testData);
 
         detach_memory_block_Odometrie(block2);
 
+        sem_post(mutex_odo);
+        sem_post(sem_empty_odo);
+
+      
+
         
+
+      
         //------------------------------------------------------------------------
         // Great Message-String
-        float lin = 0.3;
-        float angular = 1;
+        float lin = 0;
+        float angular = 0;
         std::ostringstream oss;
         //"---START---{\"linear\": 0.1, \"angular\": 0.10}___END___\0";
         oss << "---START---{\"linear\": " << lin << ", \"angular\": " << angular << "}___END___\0";
@@ -219,21 +275,23 @@ int main(int argc, char *argv[])
         unsigned int echoStringLen = strlen(echoString); /* Length of string to echo */
 
         //------------------------------------------------------------------------
-
+        connectSocket(echoServAddr, echoServPort, servIP);
+       
         /* Send the string to the server */
         if (send(sock, echoString, echoStringLen, 0) != echoStringLen)
             printf("send() sent a different number of bytes than expected");
 
         printf("%s\n", echoString);
+        close(sock);
 
-        sem_post(sem_cons_lidar);
+        //sem_post(sem_empty_lidar);
         
     }
 
-    sem_close(sem_cons_lidar);
-    sem_close(sem_prod_lidar);
-    sem_close(sem_cons_odo);
-    sem_close(sem_prod_odo);
+    sem_close(sem_empty_lidar);
+    sem_close(sem_full_lidar);
+    sem_close(sem_empty_odo);
+    sem_close(sem_full_odo);
     sem_close(init_lidar);
     sem_close(init_odo);
 

@@ -31,6 +31,9 @@ bool detach_memory_block_Odometrie(struct SharedMemoryODO *block);
 #define FILENAME_LIDAR "src/TCPEchoClient_Lidar.cpp"
 #define FILENAME_ODO "src/TCPEchoClient_Odometrie.cpp"
 
+//#define FILENAME_LIDAR "TCPEchoClient_Lidar.cpp"
+//#define FILENAME_ODO "TCPEchoClient_Odometrie.cpp"
+
 //define FILENAME "/apr/shmem_lidar"
 //#define FILENAME2 "/apr/shmem_odom"
 
@@ -41,6 +44,16 @@ bool detach_memory_block_Odometrie(struct SharedMemoryODO *block);
 #define SEM_CONSUMER_ODO "/myconsumerOdo"
 #define SEM_INIT_LIDAR "/initLidar"
 #define SEM_INIT_ODO "/initOdo"
+
+
+#define FULL_LIDAR "/fullLidar"
+#define FULL_ODO "/fullOdo"
+#define EMPTY_LIDAR "/emptyLidar"
+#define EMPTY_ODO "/emptyOdo"
+#define SEM_INIT_LIDAR "/initLidar"
+#define SEM_INIT_ODO "/initOdo"
+#define MUTEX_LIDAR "/mutexLidar"
+#define MUTEX_ODO "/mutexOdo"
 
 
 #endif
