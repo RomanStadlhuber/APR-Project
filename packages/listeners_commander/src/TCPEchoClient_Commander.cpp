@@ -34,9 +34,6 @@ sem_t *mutex_odo;
 struct SharedMemoryLIDAR *block;
 struct SharedMemoryODO *block2;
 
-// Compile mit:     g++ TCPEchoClient_Commander.cpp -lpthread -o TCPEchoClient_Commander
-// Start mit:       ./TCPEchoClient_Commander 127.0.0.1 10001
-
 void signalHandler(int sig)
 {
     printf("Close all\n");
@@ -55,7 +52,7 @@ void signalHandler(int sig)
     close(sock);
     exit(0);
 
-} // end producerHandler
+} 
 
 
 void greateSemahpore()
@@ -67,9 +64,8 @@ void greateSemahpore()
     sem_unlink(MUTEX_LIDAR);
     sem_unlink(SEM_INIT_LIDAR);
     sem_unlink(SEM_INIT_ODO);
-     sem_unlink(MUTEX_ODO);
+    sem_unlink(MUTEX_ODO);
 
-//test - comment
     init_lidar = sem_open(SEM_INIT_LIDAR, O_CREAT, 0777, 0);
     if (init_lidar == SEM_FAILED)
     {
@@ -191,7 +187,7 @@ int main(int argc, char *argv[])
     unsigned int bytesRcvd, totalBytesRcvd; /* Bytes read in single recv()  // changed to unsigned int due to comparison problems
                                       and total bytes read */
 
-    if ((argc < 3) || (argc > 3)) /* Test for correct number of arguments */
+    if ((argc < 2) || (argc > 3)) /* Test for correct number of arguments */
     {
         fprintf(stderr, "Usage: %s <Server IP> [<Echo Port>]\n",
                 argv[0]);
@@ -238,15 +234,10 @@ int main(int argc, char *argv[])
         sem_post(mutex_lidar);
         sem_post(sem_empty_lidar);
 
-
         printf("Waiting Odo...\n");
-
-        
-                
+           
         sem_wait(sem_full_odo);
         sem_wait(mutex_odo);
-
-         printf("Wait...sh\n");
 
         block2 = readSharedMemoryOdometrie();
         
@@ -255,11 +246,7 @@ int main(int argc, char *argv[])
         detach_memory_block_Odometrie(block2);
 
         sem_post(mutex_odo);
-        sem_post(sem_empty_odo);
-
-      
-
-        
+        sem_post(sem_empty_odo);     
 
       
         //------------------------------------------------------------------------
@@ -275,6 +262,7 @@ int main(int argc, char *argv[])
         unsigned int echoStringLen = strlen(echoString); /* Length of string to echo */
 
         //------------------------------------------------------------------------
+
         connectSocket(echoServAddr, echoServPort, servIP);
        
         /* Send the string to the server */
@@ -283,17 +271,17 @@ int main(int argc, char *argv[])
 
         printf("%s\n", echoString);
         close(sock);
-
-        //sem_post(sem_empty_lidar);
         
     }
 
-    sem_close(sem_empty_lidar);
-    sem_close(sem_full_lidar);
     sem_close(sem_empty_odo);
     sem_close(sem_full_odo);
+    sem_close(sem_empty_lidar);
+    sem_close(sem_full_lidar);
     sem_close(init_lidar);
     sem_close(init_odo);
+    sem_close(mutex_lidar);
+    sem_close(mutex_odo);
 
     detach_memory_block_LIDAR(block);
     detach_memory_block_Odometrie(block2);

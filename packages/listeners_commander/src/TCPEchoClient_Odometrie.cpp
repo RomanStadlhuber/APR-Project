@@ -24,8 +24,6 @@ struct SharedMemoryODO *block;
 
 #define RCVBUFSIZE 5000 /* Size of receive buffer */
 
-// Compile with:  g++ TCPEchoClient_Odometrie.cpp shared_memory.cpp -lpthread  -o TCPEchoClient_Odometrie
-// Start with: ./TCPEchoClient_Odometrie 127.0.0.1 10002
 
 void signalHandler(int sig)
 {
@@ -47,7 +45,7 @@ void signalHandler(int sig)
     close(sock);
     exit(0);
 
-} // end producerHandler
+} 
 
 int attachSemaphores()
 {
@@ -97,12 +95,12 @@ void writeSharedMemory(struct SharedMemoryODO *block, struct SharedMemoryODO *da
     }
     block->testData = data->testData;
     printf("Writing: \"%d\"\n", block->testData);
-    // strncpy(block, testChar, BLOCK_SIZE);
+   
 }
 
 int checkMessage(const std::string &buffer, const std::string &start_delimimter, const std::string &ende_delimimter)
 {
-    // std::cout << s << std::endl;
+   
     if(buffer.length() <= start_delimimter.length() || buffer.length() <= ende_delimimter.length() )
     {
         printf("Buffer lenght");
@@ -126,7 +124,6 @@ int checkMessage(const std::string &buffer, const std::string &start_delimimter,
 
 std::string getMessage(const std::string &buffer, const std::string &start_delimimter, const std::string &ende_delimimter)
 {
-    // std::cout << s << std::endl;
     unsigned pos_start_delimimter = buffer.find(start_delimimter, 0);
     unsigned pos_ende_delimimter = buffer.find(ende_delimimter, pos_start_delimimter);
     printf("\n first delim pos: %d | last delim pos: %d \n", pos_start_delimimter, pos_ende_delimimter);
@@ -159,12 +156,15 @@ int main(int argc, char *argv[])
     if (argc == 3)
         echoServPort = atoi(argv[2]); /* Use given port, if any */
     else
-        echoServPort = 7; /* 7 is the well-known port for the echo service */
+        echoServPort = 9998; /* 7 is the well-known port for the echo service */
 
     /* Create a reliable, stream socket using TCP */
 
      //---------------------------------------------------------------------------
 
+     
+
+    /* Create a reliable, stream socket using TCP */
     if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
         printf("socket() failed");
 
@@ -185,7 +185,11 @@ int main(int argc, char *argv[])
     
     sem_post(init_odo);
     
-    close(sock);
+    if(SIMULATIONS_ON == 0)
+    {
+        close(sock);
+    }
+    
 
     struct SharedMemoryODO *test = new SharedMemoryODO();
     test->testData = 100;
@@ -201,34 +205,37 @@ int main(int argc, char *argv[])
     printf("Received: "); /* Setup to print the echoed string */
     while (1)
     {
-        /* Receive up to the buffer size (minus 1 to leave space for
-           a null terminator) bytes from the sender */
+       
         sem_wait(sem_empty_odo);
         sem_wait(mutex_odo);
 
-         printf("Wait...\n");
 
-         if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
-        printf("socket() failed");
 
-    /* Construct the server address structure */
-    memset(&echoServAddr, 0, sizeof(echoServAddr));   /* Zero out structure */
-    echoServAddr.sin_family = AF_INET;                /* Internet address family */
-    echoServAddr.sin_addr.s_addr = inet_addr(servIP); /* Server IP address */
-    echoServAddr.sin_port = htons(echoServPort);      /* Server port */
+        if(SIMULATIONS_ON == 0)
+        {
+            
+            if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+            printf("socket() failed");
 
-    /* Establish the connection to the echo server */
-    if (connect(sock, (struct sockaddr *)&echoServAddr, sizeof(echoServAddr)) < 0)
-        printf("connect() failed");
+            /* Construct the server address structure */
+            memset(&echoServAddr, 0, sizeof(echoServAddr));   /* Zero out structure */
+            echoServAddr.sin_family = AF_INET;                /* Internet address family */
+            echoServAddr.sin_addr.s_addr = inet_addr(servIP); /* Server IP address */
+            echoServAddr.sin_port = htons(echoServPort);      /* Server port */
 
-        nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
+            /* Establish the connection to the echo server */
+            if (connect(sock, (struct sockaddr *)&echoServAddr, sizeof(echoServAddr)) < 0)
+                printf("connect() failed");
+        }
+
+        //nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
         
 
         if ((bytesRcvd = recv(sock, echoBuffer, RCVBUFSIZE - 1, 0)) <= 0)
             printf("recv() failed or connection closed prematurely");
         totalBytesRcvd += bytesRcvd;  
         echoBuffer[bytesRcvd] = '\0'; 
-        // printf("%s", echoBuffer);      
+        printf("%s", echoBuffer);      
         if(checkMessage(echoBuffer, "--START---", "___END___") == 1)
         {
             std::cout << getMessage(echoBuffer, "--START---", "___END___") << std::endl;
@@ -240,7 +247,11 @@ int main(int argc, char *argv[])
             count++;
         }
         
-        close(sock);
+        if(SIMULATIONS_ON == 0)
+        {
+            close(sock);
+        }
+        
         
         writeSharedMemory(block, test);
         detach_memory_block_Odometrie(block);

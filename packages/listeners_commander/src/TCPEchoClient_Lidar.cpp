@@ -25,8 +25,6 @@ struct SharedMemoryLIDAR *block;
 
 #define RCVBUFSIZE 8000 /* Size of receive buffer */
 
-// Compile with:  g++ TCPEchoClient_Lidar.cpp shared_memory.cpp -lpthread  -o TCPEchoClient_Lidar
-// Start with: ./TCPEchoClient_Lidar
 
 void signalHandler(int sig)
 {
@@ -48,7 +46,7 @@ void signalHandler(int sig)
     close(sock);
     exit(0);
 
-} // end producerHandler
+} 
 
 int attachSemahpore()
 {
@@ -98,12 +96,12 @@ void writeSharedMemory(struct SharedMemoryLIDAR *block, struct SharedMemoryLIDAR
     }
     block->testData = data->testData;
     printf("Writing: \"%d\"\n", block->testData);
-    // strncpy(block, testChar, BLOCK_SIZE);
+   
 }
 
 int checkMessage(const std::string &buffer, const std::string &start_delimimter, const std::string &ende_delimimter)
 {
-    // std::cout << s << std::endl;
+    
     if(buffer.length() <= start_delimimter.length() || buffer.length() <= ende_delimimter.length() )
     {
         printf("Buffer lenght");
@@ -127,13 +125,13 @@ int checkMessage(const std::string &buffer, const std::string &start_delimimter,
 
 std::string getMessage(const std::string &buffer, const std::string &start_delimimter, const std::string &ende_delimimter)
 {
-    // std::cout << s << std::endl;
     unsigned pos_start_delimimter = buffer.find(start_delimimter, 0);
     unsigned pos_ende_delimimter = buffer.find(ende_delimimter, pos_start_delimimter);
     printf("\n first delim pos: %d | last delim pos: %d \n", pos_start_delimimter, pos_ende_delimimter);
 
     return buffer.substr(pos_start_delimimter, pos_ende_delimimter + ende_delimimter.length() - pos_start_delimimter);
 }
+
 
 int main(int argc, char *argv[])
 {
@@ -160,7 +158,7 @@ int main(int argc, char *argv[])
     if (argc == 3)
         echoServPort = atoi(argv[2]); /* Use given port, if any */
     else
-        echoServPort = 7; /* 7 is the well-known port for the echo service */
+        echoServPort = 9997; /* 7 is the well-known port for the echo service */
 
 //---------------------------------------------------------------------------
     /* Create a reliable, stream socket using TCP */
@@ -178,14 +176,18 @@ int main(int argc, char *argv[])
         printf("connect() failed");
 
     //---------------------------------------------------------------------------
-    //sleep(1);
+  
     attachSemahpore();
     signal(SIGINT, signalHandler); // catch SIGINT
 
 
     sem_post(init_lidar);
 
-    close(sock);
+    if(SIMULATIONS_ON == 0)
+    {
+        close(sock);
+    }
+    
     struct SharedMemoryLIDAR *test = new SharedMemoryLIDAR();
     test->testData = 5;
 
@@ -204,21 +206,26 @@ int main(int argc, char *argv[])
         sem_wait(sem_empty_lidar);
         sem_wait(mutex_lidar);
 
-         /* Create a reliable, stream socket using TCP */
-    if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
-        printf("socket() failed");
+        if(SIMULATIONS_ON == 0)
+        {
 
-    /* Construct the server address structure */
-    memset(&echoServAddr, 0, sizeof(echoServAddr));   /* Zero out structure */
-    echoServAddr.sin_family = AF_INET;                /* Internet address family */
-    echoServAddr.sin_addr.s_addr = inet_addr(servIP); /* Server IP address */
-    echoServAddr.sin_port = htons(echoServPort);      /* Server port */
+                /* Create a reliable, stream socket using TCP */
+            if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+                printf("socket() failed");
 
-    /* Establish the connection to the echo server */
-    if (connect(sock, (struct sockaddr *)&echoServAddr, sizeof(echoServAddr)) < 0)
-        printf("connect() failed");
+            /* Construct the server address structure */
+            memset(&echoServAddr, 0, sizeof(echoServAddr));   /* Zero out structure */
+            echoServAddr.sin_family = AF_INET;                /* Internet address family */
+            echoServAddr.sin_addr.s_addr = inet_addr(servIP); /* Server IP address */
+            echoServAddr.sin_port = htons(echoServPort);      /* Server port */
 
-    nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
+            /* Establish the connection to the echo server */
+            if (connect(sock, (struct sockaddr *)&echoServAddr, sizeof(echoServAddr)) < 0)
+                printf("connect() failed");
+
+        }
+        
+        //nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
 
         if ((bytesRcvd = recv(sock, echoBuffer, RCVBUFSIZE - 1, 0)) <= 0)
             printf("recv() failed or connection closed prematurely");
@@ -240,8 +247,11 @@ int main(int argc, char *argv[])
             count++;
         }
 
-        close(sock);
-
+        if(SIMULATIONS_ON == 0)
+        {
+            close(sock);
+        }
+        
         writeSharedMemory(block, test);
         detach_memory_block_LIDAR(block);
         sem_post(mutex_lidar);
@@ -257,8 +267,10 @@ int main(int argc, char *argv[])
     sem_close(sem_empty_lidar);
     sem_close(sem_full_lidar);
     sem_close(init_lidar);
+    sem_close(mutex_lidar);
 
-    //detach_memory_block_LIDAR(block);
+
+    detach_memory_block_LIDAR(block);
     close(sock);
     exit(0);
 }

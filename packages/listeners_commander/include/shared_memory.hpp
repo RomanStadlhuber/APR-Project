@@ -3,6 +3,9 @@
 
 #include <stdbool.h>
 
+#define SIMULATIONS_ON 1
+
+
 struct SharedMemoryLIDAR
 {
     int testData;
@@ -28,6 +31,7 @@ bool detach_memory_block_Odometrie(struct SharedMemoryODO *block);
 
 // all of the programs will share these values
 #define BLOCK_SIZE 4096
+
 #define FILENAME_LIDAR "src/TCPEchoClient_Lidar.cpp"
 #define FILENAME_ODO "src/TCPEchoClient_Odometrie.cpp"
 
