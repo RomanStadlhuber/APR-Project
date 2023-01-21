@@ -93,6 +93,7 @@ void writeSharedMemory(struct SharedMemoryODO *block, struct SharedMemoryODO *da
         printf("Error: could not get block\n");
         // return -1;
     }
+     //Casper: hier die Daten raufschreiben auf den block für SharedMemroy
     block->testData = data->testData;
     printf("Writing: \"%d\"\n", block->testData);
    
@@ -238,7 +239,8 @@ int main(int argc, char *argv[])
         printf("%s", echoBuffer);      
         if(checkMessage(echoBuffer, "--START---", "___END___") == 1)
         {
-            std::cout << getMessage(echoBuffer, "--START---", "___END___") << std::endl;
+            std::cout << getMessage(echoBuffer, "--START---", "___END___") << std::endl; //Casper: mit der getMessage() Funktion bekommst du deinen String zum Parsen (Odometrie)
+            //Casper: Am besten dann in ein vorrübergehendes struct hier speichern
             test->testData++;
           
         }
@@ -253,7 +255,7 @@ int main(int argc, char *argv[])
         }
         
         
-        writeSharedMemory(block, test);
+        writeSharedMemory(block, test);//Casper: in dieser Funktion werden die Daten des structs auf den SharedMemory geschrieben, bitte diese Funktion anpassen
         detach_memory_block_Odometrie(block);
 
         sem_post(mutex_odo);

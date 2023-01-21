@@ -94,6 +94,7 @@ void writeSharedMemory(struct SharedMemoryLIDAR *block, struct SharedMemoryLIDAR
         printf("Error: could not get block\n");
         // return -1;
     }
+    //Casper: hier die Daten raufschreiben auf den block für SharedMemroy
     block->testData = data->testData;
     printf("Writing: \"%d\"\n", block->testData);
    
@@ -237,8 +238,8 @@ int main(int argc, char *argv[])
         
         if(checkMessage(echoBuffer, "--START---", "___END___") == 1)
         {
-            std::cout << getMessage(echoBuffer, "--START---", "___END___") << std::endl;
-            //Überprüfen ob die Messages auch ganz ist => min. Länge => dann if => wenn erfüllt auf den ShMem schreiben
+            std::cout << getMessage(echoBuffer, "--START---", "___END___") << std::endl; //Casper: mit der getMessage() Funktion bekommst du deinen String zum Parsen (Lidar)
+            //Casper: Am besten dann in ein vorrübergehendes struct hier speichern
             test->testData++;
             
         }
@@ -252,7 +253,7 @@ int main(int argc, char *argv[])
             close(sock);
         }
         
-        writeSharedMemory(block, test);
+        writeSharedMemory(block, test); //Casper: in dieser Funktion werden die Daten des structs auf den SharedMemory geschrieben, bitte diese Funktion anpassen
         detach_memory_block_LIDAR(block);
         sem_post(mutex_lidar);
         sem_post(sem_full_lidar);

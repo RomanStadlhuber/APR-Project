@@ -5,12 +5,12 @@
 
 #define SIMULATIONS_ON 1
 
-
+//Casper: deine structs hier ergänzen, dise structs werden dann auf den SharedMemory geschrieben
 struct SharedMemoryLIDAR
 {
     int testData;
 };
-
+//Casper: deine structs hier ergänzen, dise structs werden dann auf den SharedMemory geschrieben
 struct SharedMemoryODO
 {
     int testData;
@@ -38,18 +38,8 @@ bool detach_memory_block_Odometrie(struct SharedMemoryODO *block);
 //#define FILENAME_LIDAR "TCPEchoClient_Lidar.cpp"
 //#define FILENAME_ODO "TCPEchoClient_Odometrie.cpp"
 
-//define FILENAME "/apr/shmem_lidar"
-//#define FILENAME2 "/apr/shmem_odom"
 
 // Filenames for four semaphores
-#define SEM_PRODUCER_LIDAR "/myproducerLidar"
-#define SEM_PRODUCER_ODO "/myproducerOdo"
-#define SEM_CONSUMER_LIDAR "/myconsumerLidar"
-#define SEM_CONSUMER_ODO "/myconsumerOdo"
-#define SEM_INIT_LIDAR "/initLidar"
-#define SEM_INIT_ODO "/initOdo"
-
-
 #define FULL_LIDAR "/fullLidar"
 #define FULL_ODO "/fullOdo"
 #define EMPTY_LIDAR "/emptyLidar"
