@@ -19,7 +19,6 @@ struct header{
         string frame_id;
         int seq = 0;
         stamp stamp;
-
 };
 
 struct msgLIDAR{
@@ -37,40 +36,34 @@ struct msgLIDAR{
 
 };
 
-struct coordinates{
+struct posiCoordinates{
+    public:
+        double x = 0;
+        double y = 0;
+        double z = 0;
+};
+
+struct oriCoordinates{
     public:
         double x = 0;
         double y = 0;
         double z = 0;
         double w = 0;
-
 };
 
 struct pose{
     public:
-        coordinates position;
-        coordinates orientation;
-        vector<double> covariance;
-
-};
-
-struct twist{
-    public:
-        coordinates linear;
-        coordinates angular; 
+        posiCoordinates position;
+        oriCoordinates orientation;
         vector<double> covariance;
 };
-
- 
 
 struct msgOddomtr{
     public:
         header header;
         string child_frame_id;
         pose pose;
-        // twist twist; // twist is not needed
-
-
+        
 };
 
 

@@ -9,7 +9,11 @@
 #include <semaphore.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <iomanip>
+#include <vector>
+#include <string>
 
+#include "json.hpp"
 
 #include <shared_memory.hpp>
 //#include "shared_memory.hpp"
@@ -133,6 +137,46 @@ std::string getMessage(const std::string &buffer, const std::string &start_delim
     return buffer.substr(pos_start_delimimter, pos_ende_delimimter + ende_delimimter.length() - pos_start_delimimter);
 }
 
+struct msgLIDAR json2Struct(nlohmann::json_abi_v3_11_2::json j_msg_L) // get parsed json file to struct
+{
+    struct msgLIDAR msgL;
+
+    j_msg_L["header"]["seq"].get_to(msgL.header.seq);
+    j_msg_L["header"]["stamp"]["secs"].get_to(msgL.header.stamp.secs);
+    j_msg_L["header"]["stamp"]["nsecs"].get_to(msgL.header.stamp.nsecs);
+    j_msg_L["header"]["frame_id"].get_to(msgL.header.frame_id);
+    j_msg_L["angle_increment"].get_to(msgL.angle_increment);
+    j_msg_L["angle_max"].get_to(msgL.angle_max);
+    j_msg_L["angle_min"].get_to(msgL.angle_min);
+    j_msg_L["time_increment"].get_to(msgL.time_increment);
+    j_msg_L["scan_time"].get_to(msgL.scan_time);
+    j_msg_L["range_max"].get_to(msgL.range_max);
+    j_msg_L["range_min"].get_to(msgL.range_min);
+    j_msg_L["intensities"].get_to(msgL.intensities);
+    j_msg_L["ranges"].get_to(msgL.ranges);
+
+    return msgL;
+}
+
+void outputLIDARStruct(struct msgLIDAR msgL) // test ouuput of Odom Struct
+{
+            std::cout << std::endl << std::endl 
+                << "Scan Id: \t\t" << msgL.header.frame_id << std::endl
+                << "Seq. Nr: \t\t" << msgL.header.seq << std::endl 
+                << "\t Sek.: \t\t" << msgL.header.stamp.secs << std::endl 
+                << "\t nano Sek.: \t" << msgL.header.stamp.nsecs<< std::endl 
+                << "Angle min: \t" << msgL.angle_min <<std::endl
+                << "Angle max: \t" << msgL.angle_max <<std::endl
+                << "Angle increment:" << msgL.angle_increment <<std::endl
+                << "Range min: \t" << msgL.range_min << std::endl
+                << "Range max: \t" << msgL.range_max << std::endl;
+                std::cout << "First 36 Ranges:" << std::endl << "\t"; 
+                for (int i = 0; i < 36; i++){
+                     std::cout << msgL.ranges.at(i) << ", "; 
+                }
+                std::cout << std::endl << std::endl;
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -233,13 +277,26 @@ int main(int argc, char *argv[])
         totalBytesRcvd += bytesRcvd;  /* Keep tally of total bytes */
         echoBuffer[bytesRcvd] = '\0'; /* Terminate the string! */
         // printf("%s", echoBuffer);      /* Print the echo buffer */
-        std::cout << echoBuffer << std::endl;
+        //std::cout << echoBuffer << std::endl;
         std::cout << "______________________________-" << std::endl;
         
         if(checkMessage(echoBuffer, "--START---", "___END___") == 1)
         {
-            std::cout << getMessage(echoBuffer, "--START---", "___END___") << std::endl; //Casper: mit der getMessage() Funktion bekommst du deinen String zum Parsen (Lidar)
-            //Casper: Am besten dann in ein vorrübergehendes struct hier speichern
+            //std::cout << getMessage(echoBuffer, "--START---", "___END___") << std::endl; 
+
+            std::string tempStrng = getMessage(echoBuffer, "--START---", "___END___"); // get message to string for parsing
+            
+            tempStrng.erase(0,10);                  // delete --START--- for parsing
+            tempStrng.erase(tempStrng.size()-9);    // delete ___END___  for parsing
+            
+            nlohmann::json_abi_v3_11_2::json j_msg_L = nlohmann::json_abi_v3_11_2::json::parse(tempStrng); // parse tempStrng to j_msg_L
+
+            msgLIDAR msgL;
+            msgL = json2Struct(j_msg_L); // get parsed json file to struct
+
+            outputLIDARStruct(msgL);   // Test ouput
+
+
             test->testData++;
             
         }

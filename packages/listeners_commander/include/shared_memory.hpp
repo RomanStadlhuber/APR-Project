@@ -2,8 +2,78 @@
 #define SHARED_MEMORY_HPP
 
 #include <stdbool.h>
+#include <signal.h>
+#include <iomanip>
+#include <vector>
+#include <string>
 
 #define SIMULATIONS_ON 1
+
+// struchts to save the json massage
+struct stampStrc{
+    public:
+        int secs = 0;
+        int nsecs = 0;
+};
+
+struct headerStrct{
+    public:
+        std::string frame_id;
+        int seq = 0;
+        stampStrc stamp;
+};
+
+struct coordinatesCalculadet{
+    public:
+        std::vector<double> x;
+        std::vector<double> y;
+};
+
+struct msgLIDAR{
+    public:
+        headerStrct header;
+        double angle_increment = 0;
+        double angle_max = 0;
+        double angle_min = 0;
+        double time_increment = 0;
+        double scan_time = 0;
+        double range_max;
+        double range_min;
+        coordinatesCalculadet XYcoordinates;
+        std::vector<double> intensities;
+        std::vector<double> ranges;
+
+};
+
+struct posiCoordinates{
+    public:
+        double x = 0;
+        double y = 0;
+        double z = 0;
+};
+
+struct oriCoordinates{
+    public:
+        double x = 0;
+        double y = 0;
+        double z = 0;
+        double w = 0;
+};
+
+struct poseStrct{
+    public:
+        posiCoordinates position;
+        oriCoordinates orientation;
+        std::vector<double> covariance;
+};
+
+struct msgOddomtr{
+    public:
+        headerStrct header;
+        std::string child_frame_id;
+        poseStrct pose;
+        
+};
 
 //Casper: deine structs hier ergänzen, dise structs werden dann auf den SharedMemory geschrieben
 struct SharedMemoryLIDAR

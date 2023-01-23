@@ -9,6 +9,11 @@
 #include <semaphore.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <iomanip>
+#include <vector>
+#include <string>
+
+#include "json.hpp"
 
 #include <shared_memory.hpp>
 //#include "shared_memory.hpp"
@@ -132,6 +137,49 @@ std::string getMessage(const std::string &buffer, const std::string &start_delim
     return buffer.substr(pos_start_delimimter, pos_ende_delimimter + ende_delimimter.length() - pos_start_delimimter);
 }
 
+struct msgOddomtr json2Struct(nlohmann::json_abi_v3_11_2::json j_msg_O) // get parsed json file to struct
+{
+    struct msgOddomtr msgO;
+
+    j_msg_O["header"]["seq"].get_to(msgO.header.seq);
+    j_msg_O["header"]["stamp"]["secs"].get_to(msgO.header.stamp.secs);
+    j_msg_O["header"]["stamp"]["nsecs"].get_to(msgO.header.stamp.nsecs);
+    j_msg_O["header"]["frame_id"].get_to(msgO.header.frame_id);
+    j_msg_O["child_frame_id"].get_to(msgO.child_frame_id);
+    j_msg_O["pose"]["pose"]["position"]["x"].get_to(msgO.pose.position.x);
+    j_msg_O["pose"]["pose"]["position"]["y"].get_to(msgO.pose.position.y);
+    j_msg_O["pose"]["pose"]["position"]["z"].get_to(msgO.pose.position.z);
+    j_msg_O["pose"]["pose"]["orientation"]["x"].get_to(msgO.pose.orientation.x);
+    j_msg_O["pose"]["pose"]["orientation"]["x"].get_to(msgO.pose.orientation.y);
+    j_msg_O["pose"]["pose"]["orientation"]["x"].get_to(msgO.pose.orientation.z);
+    j_msg_O["pose"]["pose"]["orientation"]["x"].get_to(msgO.pose.orientation.w);
+    j_msg_O["pose"]["covariance"].get_to(msgO.pose.covariance);
+
+    return msgO;
+}
+
+void outputOdomStruct(struct msgOddomtr msgO) // test ouuput of Odom Struct
+{
+            std::cout << std::endl << std::endl 
+                << "Scan Id: \t\t" << msgO.header.frame_id << std::endl
+                << "Seq. Nr: \t\t" << msgO.header.seq << std::endl 
+                << "\t Sek.: \t\t\t" << msgO.header.stamp.secs << std::endl 
+                << "\t nano Sek.: \t\t" << msgO.header.stamp.nsecs<< std::endl 
+                << "Position:" << std::endl 
+                << "\t X:\t" << msgO.pose.position.x << std::endl
+                << "\t Y:\t" << msgO.pose.position.y << std::endl
+                << "\t Z:\t" << msgO.pose.position.z << std::endl
+                << "Orientation:" << std::endl
+                << "\t X:\t" << msgO.pose.orientation.x << std::endl
+                << "\t Y:\t" << msgO.pose.orientation.y << std::endl
+                << "\t Z:\t" << msgO.pose.orientation.z << std::endl
+                << "\t W:\t" << msgO.pose.orientation.w << std::endl;
+                std::cout << "Covariance at 0 - 9:" << std::endl; 
+                for (int i = 0; i < 10; i++){
+                     std::cout << i << ": \t" << msgO.pose.covariance.at(i) << std::endl; 
+                }
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -236,11 +284,23 @@ int main(int argc, char *argv[])
             printf("recv() failed or connection closed prematurely");
         totalBytesRcvd += bytesRcvd;  
         echoBuffer[bytesRcvd] = '\0'; 
-        printf("%s", echoBuffer);      
+        // printf("%s", echoBuffer);      
         if(checkMessage(echoBuffer, "--START---", "___END___") == 1)
         {
-            std::cout << getMessage(echoBuffer, "--START---", "___END___") << std::endl; //Casper: mit der getMessage() Funktion bekommst du deinen String zum Parsen (Odometrie)
-            //Casper: Am besten dann in ein vorrübergehendes struct hier speichern
+            
+            std::string tempStrng = getMessage(echoBuffer, "--START---", "___END___"); // get message to string for parsing
+            
+            tempStrng.erase(0,10);                  // delete --START--- for parsing
+            tempStrng.erase(tempStrng.size()-9);    // delete ___END___  for parsing
+            
+            nlohmann::json_abi_v3_11_2::json j_msg_O = nlohmann::json_abi_v3_11_2::json::parse(tempStrng); // parse tempStrng to j_msg_O
+
+            msgOddomtr msgO;
+            msgO = json2Struct(j_msg_O); // get parsed json file to struct
+
+            outputOdomStruct(msgO);   // Test ouput
+
+    
             test->testData++;
           
         }
