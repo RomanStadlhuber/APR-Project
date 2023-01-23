@@ -6,8 +6,8 @@
 #include <iomanip>
 #include <vector>
 #include <string>
-
-#define SIMULATIONS_ON 1
+#include <eigen3/Eigen/Dense>
+#define SIMULATIONS_ON 0
 
 // struchts to save the json massage
 struct stampStrc{
@@ -40,6 +40,7 @@ struct msgLIDAR{
         double range_max;
         double range_min;
         coordinatesCalculadet XYcoordinates;
+        std::array<Eigen::Vector2d, 360> scan_positions; // nur das ist nötig für den shared memory
         std::vector<double> intensities;
         std::vector<double> ranges;
 
@@ -62,9 +63,8 @@ struct oriCoordinates{
 
 struct poseStrct{
     public:
-        posiCoordinates position;
-        oriCoordinates orientation;
-        std::vector<double> covariance;
+        Eigen::Vector3d position;
+        Eigen::Quaterniond orientation;
 };
 
 struct msgOddomtr{
@@ -80,9 +80,14 @@ struct SharedMemoryLIDAR
 {
     int testData;
 };
+
 //Casper: deine structs hier ergänzen, dise structs werden dann auf den SharedMemory geschrieben
 struct SharedMemoryODO
 {
+    public:
+        headerStrct header;
+        std::string child_frame_id;
+        poseStrct pose;
     int testData;
 };
 

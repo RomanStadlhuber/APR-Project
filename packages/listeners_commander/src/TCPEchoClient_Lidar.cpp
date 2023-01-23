@@ -12,7 +12,7 @@
 #include <iomanip>
 #include <vector>
 #include <string>
-
+#include <eigen3/Eigen/Dense>
 #include "json.hpp"
 
 #include <shared_memory.hpp>
@@ -137,7 +137,7 @@ std::string getMessage(const std::string &buffer, const std::string &start_delim
     return buffer.substr(pos_start_delimimter, pos_ende_delimimter + ende_delimimter.length() - pos_start_delimimter);
 }
 
-struct msgLIDAR json2Struct(nlohmann::json_abi_v3_11_2::json j_msg_L) // get parsed json file to struct
+std::array<Eigen::Vector2d, 360> json2Struct(nlohmann::json_abi_v3_11_2::json j_msg_L) // get parsed json file to struct
 {
     struct msgLIDAR msgL;
 
@@ -156,13 +156,18 @@ struct msgLIDAR json2Struct(nlohmann::json_abi_v3_11_2::json j_msg_L) // get par
     j_msg_L["ranges"].get_to(msgL.ranges);
     
 
+    std::array<Eigen::Vector2d, 360> lidar_scans;
+
     for(int i = 0; i < 360; i++) // polar coordinates (range, angle) into artesian coordinates (x, y)
     {
         msgL.XYcoordinates.x.push_back(msgL.ranges.at(i) * sin(msgL.angle_min + msgL.angle_increment * i));
         msgL.XYcoordinates.y.push_back(msgL.ranges.at(i) * cos(msgL.angle_min + msgL.angle_increment * i));
+
+        const Eigen::Vector2d scan_pos (msgL.XYcoordinates.x.at(i), msgL.XYcoordinates.y.at(i));
+        lidar_scans.at(i) = scan_pos;
     }
 
-    return msgL;
+    return lidar_scans;
 }
 
 void outputLIDARStruct(struct msgLIDAR msgL) // test ouuput of Odom Struct
@@ -306,11 +311,11 @@ int main(int argc, char *argv[])
             
             nlohmann::json_abi_v3_11_2::json j_msg_L = nlohmann::json_abi_v3_11_2::json::parse(tempStrng); // parse tempStrng to j_msg_L
 
-            msgLIDAR msgL;
-            msgL = json2Struct(j_msg_L); // get parsed json file to struct
+            const std::array<Eigen::Vector2d, 360> scans = json2Struct(j_msg_L); // get parsed json file to struct
 
-            outputLIDARStruct(msgL);   // Test ouput
+            // outputLIDARStruct(msgL);   // Test ouput
 
+            // TODO: shared memobry
 
             test->testData++;
             

@@ -12,7 +12,7 @@
 #include <iomanip>
 #include <vector>
 #include <string>
-
+#include <eigen3/Eigen/Dense>
 #include "json.hpp"
 
 #include <shared_memory.hpp>
@@ -146,14 +146,18 @@ struct msgOddomtr json2Struct(nlohmann::json_abi_v3_11_2::json j_msg_O) // get p
     j_msg_O["header"]["stamp"]["nsecs"].get_to(msgO.header.stamp.nsecs);
     j_msg_O["header"]["frame_id"].get_to(msgO.header.frame_id);
     j_msg_O["child_frame_id"].get_to(msgO.child_frame_id);
-    j_msg_O["pose"]["pose"]["position"]["x"].get_to(msgO.pose.position.x);
-    j_msg_O["pose"]["pose"]["position"]["y"].get_to(msgO.pose.position.y);
-    j_msg_O["pose"]["pose"]["position"]["z"].get_to(msgO.pose.position.z);
-    j_msg_O["pose"]["pose"]["orientation"]["x"].get_to(msgO.pose.orientation.x);
-    j_msg_O["pose"]["pose"]["orientation"]["x"].get_to(msgO.pose.orientation.y);
-    j_msg_O["pose"]["pose"]["orientation"]["x"].get_to(msgO.pose.orientation.z);
-    j_msg_O["pose"]["pose"]["orientation"]["x"].get_to(msgO.pose.orientation.w);
-    j_msg_O["pose"]["covariance"].get_to(msgO.pose.covariance);
+    struct oriCoordinates quat;
+    struct posiCoordinates pos;
+    j_msg_O["pose"]["pose"]["position"]["x"].get_to(pos.x);
+    j_msg_O["pose"]["pose"]["position"]["y"].get_to(pos.y);
+    j_msg_O["pose"]["pose"]["position"]["z"].get_to(pos.z);
+    msgO.pose.position = Eigen::Vector3d(pos.x, pos.y, pos.z);
+    j_msg_O["pose"]["pose"]["orientation"]["x"].get_to(quat.x);
+    j_msg_O["pose"]["pose"]["orientation"]["x"].get_to(quat.y);
+    j_msg_O["pose"]["pose"]["orientation"]["x"].get_to(quat.z);
+    j_msg_O["pose"]["pose"]["orientation"]["x"].get_to(quat.w);
+    msgO.pose.orientation = Eigen::Quaterniond(quat.w, quat.x, quat.y, quat.z);
+    // j_msg_O["pose"]["covariance"].get_to(msgO.pose.covariance);
 
     return msgO;
 }
@@ -166,18 +170,15 @@ void outputOdomStruct(struct msgOddomtr msgO) // test ouuput of Odom Struct
                 << "\t Sek.: \t\t\t" << msgO.header.stamp.secs << std::endl 
                 << "\t nano Sek.: \t\t" << msgO.header.stamp.nsecs<< std::endl 
                 << "Position:" << std::endl 
-                << "\t X:\t" << msgO.pose.position.x << std::endl
-                << "\t Y:\t" << msgO.pose.position.y << std::endl
-                << "\t Z:\t" << msgO.pose.position.z << std::endl
+                << "\t X:\t" << msgO.pose.position.x() << std::endl
+                << "\t Y:\t" << msgO.pose.position.y() << std::endl
+                << "\t Z:\t" << msgO.pose.position.z() << std::endl
                 << "Orientation:" << std::endl
-                << "\t X:\t" << msgO.pose.orientation.x << std::endl
-                << "\t Y:\t" << msgO.pose.orientation.y << std::endl
-                << "\t Z:\t" << msgO.pose.orientation.z << std::endl
-                << "\t W:\t" << msgO.pose.orientation.w << std::endl;
+                << "\t X:\t" << msgO.pose.orientation.x() << std::endl
+                << "\t Y:\t" << msgO.pose.orientation.y() << std::endl
+                << "\t Z:\t" << msgO.pose.orientation.z() << std::endl
+                << "\t W:\t" << msgO.pose.orientation.w() << std::endl;
                 std::cout << "Covariance at 0 - 9:" << std::endl; 
-                for (int i = 0; i < 10; i++){
-                     std::cout << i << ": \t" << msgO.pose.covariance.at(i) << std::endl; 
-                }
 }
 
 int main(int argc, char *argv[])
@@ -242,6 +243,7 @@ int main(int argc, char *argv[])
 
     struct SharedMemoryODO *test = new SharedMemoryODO();
     test->testData = 100;
+    struct SharedMemoryODO *dataOdom = new SharedMemoryODO();
    
 
     //---------------------------------------------------------------------------
@@ -300,7 +302,6 @@ int main(int argc, char *argv[])
 
             outputOdomStruct(msgO);   // Test ouput
 
-    
             test->testData++;
           
         }
