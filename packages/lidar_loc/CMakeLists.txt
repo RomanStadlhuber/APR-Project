@@ -28,6 +28,12 @@ add_library(${PROJECT_NAME}_circledetection_lib
 target_link_libraries(${PROJECT_NAME}_circledetection_lib
     Eigen3::Eigen
 )
+add_library(${PROJECT_NAME}_fusion_lib
+    src/Fusion.cpp
+)
+target_link_libraries(${PROJECT_NAME}_fusion_lib
+    Eigen3::Eigen
+)
 # -------------------- TESTS --------------------------
 enable_testing()
 add_executable(${PROJECT_NAME}_circledetection_lib_test
@@ -37,5 +43,15 @@ target_link_libraries(${PROJECT_NAME}_circledetection_lib_test
     GTest::gtest_main
     ${PROJECT_NAME}_circledetection_lib
 )
+add_executable(${PROJECT_NAME}_fusion_lib_test
+    src/tests/fusion.cpp
+)
+target_link_libraries(${PROJECT_NAME}_fusion_lib_test
+    GTest::gtest_main
+    ${PROJECT_NAME}_fusion_lib
+)
 include(GoogleTest)
-gtest_discover_tests(${PROJECT_NAME}_circledetection_lib_test)
+gtest_discover_tests(
+    ${PROJECT_NAME}_circledetection_lib_test
+    ${PROJECT_NAME}_fusion_lib_test
+)
