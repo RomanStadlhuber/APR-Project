@@ -154,6 +154,13 @@ struct msgLIDAR json2Struct(nlohmann::json_abi_v3_11_2::json j_msg_L) // get par
     j_msg_L["range_min"].get_to(msgL.range_min);
     j_msg_L["intensities"].get_to(msgL.intensities);
     j_msg_L["ranges"].get_to(msgL.ranges);
+    
+
+    for(int i = 0; i < 360; i++) // polar coordinates (range, angle) into artesian coordinates (x, y)
+    {
+        msgL.XYcoordinates.x.push_back(msgL.ranges.at(i) * sin(msgL.angle_min + msgL.angle_increment * i));
+        msgL.XYcoordinates.y.push_back(msgL.ranges.at(i) * cos(msgL.angle_min + msgL.angle_increment * i));
+    }
 
     return msgL;
 }
@@ -170,9 +177,17 @@ void outputLIDARStruct(struct msgLIDAR msgL) // test ouuput of Odom Struct
                 << "Angle increment:" << msgL.angle_increment <<std::endl
                 << "Range min: \t" << msgL.range_min << std::endl
                 << "Range max: \t" << msgL.range_max << std::endl;
-                std::cout << "First 36 Ranges:" << std::endl << "\t"; 
-                for (int i = 0; i < 36; i++){
-                     std::cout << msgL.ranges.at(i) << ", "; 
+                std::cout << "36 Ranges (every 10 degrees):" << std::endl << "\t"; 
+                for (int i = 0; i < 360; i++){
+                     if (i % 10 == 0) std::cout << msgL.ranges.at(i) << ", "; 
+                }
+                std::cout << std::endl;
+                
+                std::cout << "36 X and Y Coordinates (every 10 degrees):" << std::endl << "\t"; 
+                for (int i = 0; i < 360; i++){
+                    if (i % 10 == 0) {
+                        std::cout << std::fixed << std::setprecision(3) << "(" << msgL.XYcoordinates.x.at(i) << " - " << msgL.XYcoordinates.y.at(i) << ")\n";  
+                    }
                 }
                 std::cout << std::endl << std::endl;
 }
@@ -210,7 +225,7 @@ int main(int argc, char *argv[])
     if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
         printf("socket() failed");
 
-    /* Construct the server address structure */
+    /* Construct the server ad-dress structure */
     memset(&echoServAddr, 0, sizeof(echoServAddr));   /* Zero out structure */
     echoServAddr.sin_family = AF_INET;                /* Internet address family */
     echoServAddr.sin_addr.s_addr = inet_addr(servIP); /* Server IP address */
