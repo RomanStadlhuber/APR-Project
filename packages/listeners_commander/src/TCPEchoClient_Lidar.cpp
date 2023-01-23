@@ -14,9 +14,9 @@
 #include <string>
 #include <eigen3/Eigen/Dense>
 #include "json.hpp"
-
+#include <CircleDetection.hpp>
 #include <shared_memory.hpp>
-//#include "shared_memory.hpp"
+// #include "shared_memory.hpp"
 
 #define BLOCK_SIZE 4096
 
@@ -28,7 +28,6 @@ sem_t *mutex_lidar;
 struct SharedMemoryLIDAR *block;
 
 #define RCVBUFSIZE 8000 /* Size of receive buffer */
-
 
 void signalHandler(int sig)
 {
@@ -49,8 +48,7 @@ void signalHandler(int sig)
     }
     close(sock);
     exit(0);
-
-} 
+}
 
 int attachSemahpore()
 {
@@ -91,40 +89,40 @@ int attachSemahpore()
 }
 
 void writeSharedMemory(struct SharedMemoryLIDAR *block, struct SharedMemoryLIDAR *data)
-{   
+{
     block = attach_memory_block_LIDAR(FILENAME_LIDAR);
     if (block == NULL)
     {
         printf("Error: could not get block\n");
         // return -1;
     }
-    //Casper: hier die Daten raufschreiben auf den block für SharedMemroy
+    // Casper: hier die Daten raufschreiben auf den block für SharedMemroy
     block->testData = data->testData;
+    block->relative_landmark_position = data->relative_landmark_position;
     printf("Writing: \"%d\"\n", block->testData);
-   
 }
 
 int checkMessage(const std::string &buffer, const std::string &start_delimimter, const std::string &ende_delimimter)
 {
-    
-    if(buffer.length() <= start_delimimter.length() || buffer.length() <= ende_delimimter.length() )
+
+    if (buffer.length() <= start_delimimter.length() || buffer.length() <= ende_delimimter.length())
     {
         printf("Buffer lenght");
         return 0;
     }
     unsigned pos_start_delimimter = buffer.find(start_delimimter, 0);
-    if(pos_start_delimimter == -1)
+    if (pos_start_delimimter == -1)
     {
         printf("del 1 not found");
         return 0;
     }
     unsigned pos_ende_delimimter = buffer.find(ende_delimimter, pos_start_delimimter);
-    if(pos_ende_delimimter  == -1)
+    if (pos_ende_delimimter == -1)
     {
         printf("del 2 not found");
         return 0;
     }
-   
+
     return 1;
 }
 
@@ -137,7 +135,7 @@ std::string getMessage(const std::string &buffer, const std::string &start_delim
     return buffer.substr(pos_start_delimimter, pos_ende_delimimter + ende_delimimter.length() - pos_start_delimimter);
 }
 
-std::array<Eigen::Vector2d, 360> json2Struct(nlohmann::json_abi_v3_11_2::json j_msg_L) // get parsed json file to struct
+std::vector<Eigen::Vector2d> json2Struct(nlohmann::json_abi_v3_11_2::json j_msg_L, const double &cutoff) // get parsed json file to struct
 {
     struct msgLIDAR msgL;
 
@@ -154,17 +152,17 @@ std::array<Eigen::Vector2d, 360> json2Struct(nlohmann::json_abi_v3_11_2::json j_
     j_msg_L["range_min"].get_to(msgL.range_min);
     j_msg_L["intensities"].get_to(msgL.intensities);
     j_msg_L["ranges"].get_to(msgL.ranges);
-    
 
-    std::array<Eigen::Vector2d, 360> lidar_scans;
+    std::vector<Eigen::Vector2d> lidar_scans;
 
-    for(int i = 0; i < 360; i++) // polar coordinates (range, angle) into artesian coordinates (x, y)
+    for (int i = 0; i < 360; i++) // polar coordinates (range, angle) into artesian coordinates (x, y)
     {
-        msgL.XYcoordinates.x.push_back(msgL.ranges.at(i) * sin(msgL.angle_min + msgL.angle_increment * i));
-        msgL.XYcoordinates.y.push_back(msgL.ranges.at(i) * cos(msgL.angle_min + msgL.angle_increment * i));
+        msgL.XYcoordinates.x.push_back(msgL.ranges.at(i) * cos(msgL.angle_min + msgL.angle_increment * i));
+        msgL.XYcoordinates.y.push_back(msgL.ranges.at(i) * sin(msgL.angle_min + msgL.angle_increment * i));
 
-        const Eigen::Vector2d scan_pos (msgL.XYcoordinates.x.at(i), msgL.XYcoordinates.y.at(i));
-        lidar_scans.at(i) = scan_pos;
+        const Eigen::Vector2d scan_pos(msgL.XYcoordinates.x.at(i), msgL.XYcoordinates.y.at(i));
+        if (scan_pos.norm() <= cutoff)
+            lidar_scans.push_back(scan_pos);
     }
 
     return lidar_scans;
@@ -172,35 +170,47 @@ std::array<Eigen::Vector2d, 360> json2Struct(nlohmann::json_abi_v3_11_2::json j_
 
 void outputLIDARStruct(struct msgLIDAR msgL) // test ouuput of Odom Struct
 {
-            std::cout << std::endl << std::endl 
-                << "Scan Id: \t\t" << msgL.header.frame_id << std::endl
-                << "Seq. Nr: \t\t" << msgL.header.seq << std::endl 
-                << "\t Sek.: \t\t" << msgL.header.stamp.secs << std::endl 
-                << "\t nano Sek.: \t" << msgL.header.stamp.nsecs<< std::endl 
-                << "Angle min: \t" << msgL.angle_min <<std::endl
-                << "Angle max: \t" << msgL.angle_max <<std::endl
-                << "Angle increment:" << msgL.angle_increment <<std::endl
-                << "Range min: \t" << msgL.range_min << std::endl
-                << "Range max: \t" << msgL.range_max << std::endl;
-                std::cout << "36 Ranges (every 10 degrees):" << std::endl << "\t"; 
-                for (int i = 0; i < 360; i++){
-                     if (i % 10 == 0) std::cout << msgL.ranges.at(i) << ", "; 
-                }
-                std::cout << std::endl;
-                
-                std::cout << "36 X and Y Coordinates (every 10 degrees):" << std::endl << "\t"; 
-                for (int i = 0; i < 360; i++){
-                    if (i % 10 == 0) {
-                        std::cout << std::fixed << std::setprecision(3) << "(" << msgL.XYcoordinates.x.at(i) << " - " << msgL.XYcoordinates.y.at(i) << ")\n";  
-                    }
-                }
-                std::cout << std::endl << std::endl;
-}
+    std::cout << std::endl
+              << std::endl
+              << "Scan Id: \t\t" << msgL.header.frame_id << std::endl
+              << "Seq. Nr: \t\t" << msgL.header.seq << std::endl
+              << "\t Sek.: \t\t" << msgL.header.stamp.secs << std::endl
+              << "\t nano Sek.: \t" << msgL.header.stamp.nsecs << std::endl
+              << "Angle min: \t" << msgL.angle_min << std::endl
+              << "Angle max: \t" << msgL.angle_max << std::endl
+              << "Angle increment:" << msgL.angle_increment << std::endl
+              << "Range min: \t" << msgL.range_min << std::endl
+              << "Range max: \t" << msgL.range_max << std::endl;
+    std::cout << "36 Ranges (every 10 degrees):" << std::endl
+              << "\t";
+    for (int i = 0; i < 360; i++)
+    {
+        if (i % 10 == 0)
+            std::cout << msgL.ranges.at(i) << ", ";
+    }
+    std::cout << std::endl;
 
+    std::cout << "36 X and Y Coordinates (every 10 degrees):" << std::endl
+              << "\t";
+    for (int i = 0; i < 360; i++)
+    {
+        if (i % 10 == 0)
+        {
+            std::cout << std::fixed << std::setprecision(3) << "(" << msgL.XYcoordinates.x.at(i) << " - " << msgL.XYcoordinates.y.at(i) << ")\n";
+        }
+    }
+    std::cout << std::endl
+              << std::endl;
+}
 
 int main(int argc, char *argv[])
 {
-    
+    // TODO: load this from arguments!
+    const double LANDMARK_RADIUS = 0.031;
+    const double LIDAR_SCAN_DISTANCE_CUTOFF = 0.75;
+    // the utility class used to detect the relative landmark position
+    lidar_loc::CircleDetection circle_detector = lidar_loc::CircleDetection(LANDMARK_RADIUS);
+
     struct sockaddr_in echoServAddr; /* Echo server address */
     unsigned short echoServPort;     /* Echo server port */
     char *servIP;                    /* Server IP address (dotted quad) */
@@ -225,7 +235,7 @@ int main(int argc, char *argv[])
     else
         echoServPort = 9997; /* 7 is the well-known port for the echo service */
 
-//---------------------------------------------------------------------------
+    //---------------------------------------------------------------------------
     /* Create a reliable, stream socket using TCP */
     if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
         printf("socket() failed");
@@ -241,18 +251,17 @@ int main(int argc, char *argv[])
         printf("connect() failed");
 
     //---------------------------------------------------------------------------
-  
+
     attachSemahpore();
     signal(SIGINT, signalHandler); // catch SIGINT
 
-
     sem_post(init_lidar);
 
-    if(SIMULATIONS_ON == 0)
+    if (SIMULATIONS_ON == 0)
     {
         close(sock);
     }
-    
+
     struct SharedMemoryLIDAR *test = new SharedMemoryLIDAR();
     test->testData = 5;
 
@@ -267,14 +276,14 @@ int main(int argc, char *argv[])
     {
         /* Receive up to the buffer size (minus 1 to leave space for
            a null terminator) bytes from the sender */
-        
+
         sem_wait(sem_empty_lidar);
         sem_wait(mutex_lidar);
 
-        if(SIMULATIONS_ON == 0)
+        if (SIMULATIONS_ON == 0)
         {
 
-                /* Create a reliable, stream socket using TCP */
+            /* Create a reliable, stream socket using TCP */
             if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
                 printf("socket() failed");
 
@@ -287,58 +296,58 @@ int main(int argc, char *argv[])
             /* Establish the connection to the echo server */
             if (connect(sock, (struct sockaddr *)&echoServAddr, sizeof(echoServAddr)) < 0)
                 printf("connect() failed");
-
         }
-        
-        //nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
+
+        // nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
 
         if ((bytesRcvd = recv(sock, echoBuffer, RCVBUFSIZE - 1, 0)) <= 0)
             printf("recv() failed or connection closed prematurely");
         totalBytesRcvd += bytesRcvd;  /* Keep tally of total bytes */
         echoBuffer[bytesRcvd] = '\0'; /* Terminate the string! */
         // printf("%s", echoBuffer);      /* Print the echo buffer */
-        //std::cout << echoBuffer << std::endl;
+        // std::cout << echoBuffer << std::endl;
         std::cout << "______________________________-" << std::endl;
-        
-        if(checkMessage(echoBuffer, "--START---", "___END___") == 1)
+
+        if (checkMessage(echoBuffer, "--START---", "___END___") == 1)
         {
-            //std::cout << getMessage(echoBuffer, "--START---", "___END___") << std::endl; 
+            // std::cout << getMessage(echoBuffer, "--START---", "___END___") << std::endl;
 
             std::string tempStrng = getMessage(echoBuffer, "--START---", "___END___"); // get message to string for parsing
-            
-            tempStrng.erase(0,10);                  // delete --START--- for parsing
-            tempStrng.erase(tempStrng.size()-9);    // delete ___END___  for parsing
-            
+
+            tempStrng.erase(0, 10);                // delete --START--- for parsing
+            tempStrng.erase(tempStrng.size() - 9); // delete ___END___  for parsing
+
             nlohmann::json_abi_v3_11_2::json j_msg_L = nlohmann::json_abi_v3_11_2::json::parse(tempStrng); // parse tempStrng to j_msg_L
 
-            const std::array<Eigen::Vector2d, 360> scans = json2Struct(j_msg_L); // get parsed json file to struct
+            // load all lidar scans in the form relative (x, y) that are closer than the cutoff
+            const std::vector<Eigen::Vector2d> scans = json2Struct(j_msg_L, LIDAR_SCAN_DISTANCE_CUTOFF); // get parsed json file to struct
+            // compute the center from scan data
+            const lidar_loc::MaybeVector2d result = circle_detector.compute_center(scans);
 
             // outputLIDARStruct(msgL);   // Test ouput
 
             // TODO: shared memobry
 
             test->testData++;
-            
+            test->relative_landmark_position = result;
         }
         else
         {
             count++;
         }
 
-        if(SIMULATIONS_ON == 0)
+        if (SIMULATIONS_ON == 0)
         {
             close(sock);
         }
-        
-        writeSharedMemory(block, test); //Casper: in dieser Funktion werden die Daten des structs auf den SharedMemory geschrieben, bitte diese Funktion anpassen
+
+        writeSharedMemory(block, test); // Casper: in dieser Funktion werden die Daten des structs auf den SharedMemory geschrieben, bitte diese Funktion anpassen
         detach_memory_block_LIDAR(block);
         sem_post(mutex_lidar);
         sem_post(sem_full_lidar);
 
         printf("waiting\n");
         printf("\n count = %d\n", count);
-      
-        
     }
     printf("\n"); /* Print a final linefeed */
 
@@ -346,7 +355,6 @@ int main(int argc, char *argv[])
     sem_close(sem_full_lidar);
     sem_close(init_lidar);
     sem_close(mutex_lidar);
-
 
     detach_memory_block_LIDAR(block);
     close(sock);

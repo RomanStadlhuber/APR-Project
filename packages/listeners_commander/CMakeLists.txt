@@ -14,6 +14,17 @@ include_directories(include)
 add_library(${PROJECT_NAME}_shared_mem_lib
     src/shared_memory.cpp
 )
+
+# ------------- LIDAR CIRCLE DETECTION LIBRARY ----------------
+include_directories(include)
+# the library that enables to detect the position of a circle from lidar data
+add_library(${PROJECT_NAME}_circledetection_lib
+    src/CircleDetection.cpp
+)
+target_link_libraries(${PROJECT_NAME}_circledetection_lib
+    Eigen3::Eigen
+)
+
 # the odometry listener executable
 add_executable(${PROJECT_NAME}_odometry
     src/TCPEchoClient_Odometrie.cpp
@@ -34,6 +45,7 @@ target_link_libraries(${PROJECT_NAME}_lidar
     PRIVATE
     ${PROJECT_NAME}_shared_mem_lib
     Threads::Threads
+    ${PROJECT_NAME}_circledetection_lib # the circle detection is made directly inside the lidar listener
 )
 
 
