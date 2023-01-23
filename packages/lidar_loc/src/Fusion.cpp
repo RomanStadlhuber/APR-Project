@@ -84,7 +84,7 @@ namespace lidar_loc
 
         // NOTE: here I assume that roll and pitch are minimal or nonexistent
         const double cos_half_angle = Eigen::Quaterniond::Identity().dot(quat);
-        const double yaw = 2 * cos_half_angle;
+        const double yaw = 2 * std::acos(cos_half_angle);
 
         return Eigen::Vector3d(tvec.x(), tvec.y(), yaw);
     }

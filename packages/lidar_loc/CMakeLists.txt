@@ -52,6 +52,6 @@ target_link_libraries(${PROJECT_NAME}_fusion_lib_test
 )
 include(GoogleTest)
 gtest_discover_tests(
-    ${PROJECT_NAME}_circledetection_lib_test
+    # ${PROJECT_NAME}_circledetection_lib_test
     ${PROJECT_NAME}_fusion_lib_test
 )

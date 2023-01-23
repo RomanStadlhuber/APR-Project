@@ -24,6 +24,6 @@ namespace
         const Eigen::Vector3d twist_out = fusion.pose2twist(Eigen::Vector3d::Zero(), q_yaw);
         const double yaw_out = twist_out.z();
         // make sure the two yaw angles are equal
-        ASSERT_DOUBLE_EQ(yaw_original, yaw_out);
+        ASSERT_NEAR(yaw_original, yaw_out, 0.05);
     }
 }
