@@ -205,11 +205,23 @@ void outputLIDARStruct(struct msgLIDAR msgL) // test ouuput of Odom Struct
 
 int main(int argc, char *argv[])
 {
-    // TODO: load this from arguments!
-    const double LANDMARK_RADIUS = 0.031;
-    const double LIDAR_SCAN_DISTANCE_CUTOFF = 0.75;
+    double LANDMARK_RADIUS = 0.031;
+    double LIDAR_SCAN_DISTANCE_CUTOFF = 0.75;
+    // load landmark RADIUS in [m] from arguments
+    if (argc >= 3)
+    {
+        LANDMARK_RADIUS = std::strtod(argv[2], NULL);
+        std::cout << "Setting landmark radius " << LANDMARK_RADIUS << std::endl;
+    }
+    // load lidar scan cutoff in [m] from arguments
+    if (argc >= 4)
+    {
+        LIDAR_SCAN_DISTANCE_CUTOFF = std::strtod(argv[3], NULL);
+        std::cout << "Setting scan range cutoff " << LIDAR_SCAN_DISTANCE_CUTOFF << std::endl;
+    }
+
     // the utility class used to detect the relative landmark position
-    lidar_loc::CircleDetection circle_detector = lidar_loc::CircleDetection(LANDMARK_RADIUS);
+    lidar_loc ::CircleDetection circle_detector = lidar_loc::CircleDetection(LANDMARK_RADIUS);
 
     struct sockaddr_in echoServAddr; /* Echo server address */
     unsigned short echoServPort;     /* Echo server port */
@@ -220,9 +232,9 @@ int main(int argc, char *argv[])
     int bytesRcvd, totalBytesRcvd;   /* Bytes read in single recv()
                                         and total bytes read */
 
-    if ((argc < 2) || (argc > 3)) /* Test for correct number of arguments */
+    if ((argc < 2) || (argc > 4)) /* Test for correct number of arguments */
     {
-        fprintf(stderr, "Usage: %s <Server IP> [<Echo Port>]\n",
+        fprintf(stderr, "Usage: %s <Server IP> [<Landmark Radius [m]>] [<Max. Scan Range [m]>]\n",
                 argv[0]);
         exit(1);
     }
@@ -230,10 +242,8 @@ int main(int argc, char *argv[])
     servIP = argv[1];     /* First arg: server IP address (dotted quad) */
     echoString = argv[2]; /* Second arg: string to echo */
 
-    if (argc == 3)
-        echoServPort = atoi(argv[2]); /* Use given port, if any */
-    else
-        echoServPort = 9997; /* 7 is the well-known port for the echo service */
+    // the port for lidar data remains the same
+    echoServPort = 9997;
 
     //---------------------------------------------------------------------------
     /* Create a reliable, stream socket using TCP */
