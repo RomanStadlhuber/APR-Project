@@ -98,6 +98,8 @@ void writeSharedMemory(struct SharedMemoryODO *block, struct SharedMemoryODO *da
     }
     // Casper: hier die Daten raufschreiben auf den block für SharedMemroy
     block->testData = data->testData;
+    block->header = data->header;
+    block->pose = data->pose;
     printf("Writing: \"%d\"\n", block->testData);
 }
 
@@ -134,48 +136,47 @@ std::string getMessage(const std::string &buffer, const std::string &start_delim
     return buffer.substr(pos_start_delimimter, pos_ende_delimimter + ende_delimimter.length() - pos_start_delimimter);
 }
 
-struct msgOddomtr json2Struct(nlohmann::json_abi_v3_11_2::json j_msg_O) // get parsed json file to struct
+void json2Struct(nlohmann::json_abi_v3_11_2::json j_msg_O, struct SharedMemoryODO *msgO) // get parsed json file to struct
 {
-    struct msgOddomtr msgO;
+    
 
-    j_msg_O["header"]["seq"].get_to(msgO.header.seq);
-    j_msg_O["header"]["stamp"]["secs"].get_to(msgO.header.stamp.secs);
-    j_msg_O["header"]["stamp"]["nsecs"].get_to(msgO.header.stamp.nsecs);
-    j_msg_O["header"]["frame_id"].get_to(msgO.header.frame_id);
-    j_msg_O["child_frame_id"].get_to(msgO.child_frame_id);
+    j_msg_O["header"]["seq"].get_to(msgO->header.seq);
+    j_msg_O["header"]["stamp"]["secs"].get_to(msgO->header.stamp.secs);
+    j_msg_O["header"]["stamp"]["nsecs"].get_to(msgO->header.stamp.nsecs);
+    j_msg_O["header"]["frame_id"].get_to(msgO->header.frame_id);
+    j_msg_O["child_frame_id"].get_to(msgO->child_frame_id);
     struct oriCoordinates quat;
     struct posiCoordinates pos;
     j_msg_O["pose"]["pose"]["position"]["x"].get_to(pos.x);
     j_msg_O["pose"]["pose"]["position"]["y"].get_to(pos.y);
     j_msg_O["pose"]["pose"]["position"]["z"].get_to(pos.z);
-    msgO.pose.position = Eigen::Vector3d(pos.x, pos.y, pos.z);
+    msgO->pose.position = Eigen::Vector3d(pos.x, pos.y, pos.z);
     j_msg_O["pose"]["pose"]["orientation"]["x"].get_to(quat.x);
     j_msg_O["pose"]["pose"]["orientation"]["y"].get_to(quat.y);
     j_msg_O["pose"]["pose"]["orientation"]["z"].get_to(quat.z);
     j_msg_O["pose"]["pose"]["orientation"]["w"].get_to(quat.w);
-    msgO.pose.orientation = Eigen::Quaterniond(quat.w, quat.x, quat.y, quat.z);
-    // j_msg_O["pose"]["covariance"].get_to(msgO.pose.covariance);
+    msgO->pose.orientation = Eigen::Quaterniond(quat.w, quat.x, quat.y, quat.z);
 
-    return msgO;
+
 }
 
-void outputOdomStruct(struct msgOddomtr msgO) // test ouuput of Odom Struct
+void outputOdomStruct(struct SharedMemoryODO *msgO) // test ouuput of Odom Struct
 {
     std::cout << std::endl
               << std::endl
-              << "Scan Id: \t\t" << msgO.header.frame_id << std::endl
-              << "Seq. Nr: \t\t" << msgO.header.seq << std::endl
-              << "\t Sek.: \t\t\t" << msgO.header.stamp.secs << std::endl
-              << "\t nano Sek.: \t\t" << msgO.header.stamp.nsecs << std::endl
+              << "Scan Id: \t\t" << msgO->header.frame_id << std::endl
+              << "Seq. Nr: \t\t" << msgO->header.seq << std::endl
+              << "\t Sek.: \t\t\t" << msgO->header.stamp.secs << std::endl
+              << "\t nano Sek.: \t\t" << msgO->header.stamp.nsecs << std::endl
               << "Position:" << std::endl
-              << "\t X:\t" << msgO.pose.position.x() << std::endl
-              << "\t Y:\t" << msgO.pose.position.y() << std::endl
-              << "\t Z:\t" << msgO.pose.position.z() << std::endl
+              << "\t X:\t" << msgO->pose.position.x() << std::endl
+              << "\t Y:\t" << msgO->pose.position.y() << std::endl
+              << "\t Z:\t" << msgO->pose.position.z() << std::endl
               << "Orientation:" << std::endl
-              << "\t X:\t" << msgO.pose.orientation.x() << std::endl
-              << "\t Y:\t" << msgO.pose.orientation.y() << std::endl
-              << "\t Z:\t" << msgO.pose.orientation.z() << std::endl
-              << "\t W:\t" << msgO.pose.orientation.w() << std::endl;
+              << "\t X:\t" << msgO->pose.orientation.x() << std::endl
+              << "\t Y:\t" << msgO->pose.orientation.y() << std::endl
+              << "\t Z:\t" << msgO->pose.orientation.z() << std::endl
+              << "\t W:\t" << msgO->pose.orientation.w() << std::endl;
     std::cout << "Covariance at 0 - 9:" << std::endl;
 }
 
@@ -236,9 +237,9 @@ int main(int argc, char *argv[])
         close(sock);
     }
 
-    struct SharedMemoryODO *test = new SharedMemoryODO();
-    test->testData = 100;
     struct SharedMemoryODO *dataOdom = new SharedMemoryODO();
+    dataOdom->testData = 100;
+   
 
     //---------------------------------------------------------------------------
 
@@ -288,12 +289,12 @@ int main(int argc, char *argv[])
 
             nlohmann::json_abi_v3_11_2::json j_msg_O = nlohmann::json_abi_v3_11_2::json::parse(tempStrng); // parse tempStrng to j_msg_O
 
-            msgOddomtr msgO;
-            msgO = json2Struct(j_msg_O); // get parsed json file to struct
 
-            outputOdomStruct(msgO); // Test ouput
+            json2Struct(j_msg_O, dataOdom); // get parsed json file to struct
 
-            test->testData++;
+            outputOdomStruct(dataOdom); // Test ouput
+
+            dataOdom->testData++;
         }
         else
         {
@@ -305,7 +306,7 @@ int main(int argc, char *argv[])
             close(sock);
         }
 
-        writeSharedMemory(block, test); // Casper: in dieser Funktion werden die Daten des structs auf den SharedMemory geschrieben, bitte diese Funktion anpassen
+        writeSharedMemory(block, dataOdom); // Casper: in dieser Funktion werden die Daten des structs auf den SharedMemory geschrieben, bitte diese Funktion anpassen
         detach_memory_block_Odometrie(block);
 
         sem_post(mutex_odo);
