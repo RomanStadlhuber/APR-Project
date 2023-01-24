@@ -36,22 +36,15 @@ target_link_libraries(${PROJECT_NAME}_fusion_lib
 )
 # -------------------- TESTS --------------------------
 enable_testing()
-add_executable(${PROJECT_NAME}_circledetection_lib_test
-    src/tests/circle_detection.cpp
+add_executable(${PROJECT_NAME}_test
+    src/tests/lidar_loc_test.cpp
 )
-target_link_libraries(${PROJECT_NAME}_circledetection_lib_test
+target_link_libraries(${PROJECT_NAME}_test
     GTest::gtest_main
     ${PROJECT_NAME}_circledetection_lib
-)
-add_executable(${PROJECT_NAME}_fusion_lib_test
-    src/tests/fusion.cpp
-)
-target_link_libraries(${PROJECT_NAME}_fusion_lib_test
-    GTest::gtest_main
     ${PROJECT_NAME}_fusion_lib
 )
 include(GoogleTest)
 gtest_discover_tests(
-    ${PROJECT_NAME}_circledetection_lib_test
-    ${PROJECT_NAME}_fusion_lib_test
+    ${PROJECT_NAME}_test
 )

@@ -1,4 +1,6 @@
+#define _USE_MATH_DEFINES
 #include <gtest/gtest.h>
+#include <Fusion.hpp>
 #include <CircleDetection.hpp>
 
 namespace
@@ -103,6 +105,57 @@ namespace
         // check correctness of result
         ASSERT_DOUBLE_EQ(result->x(), origin.x()) << "result->x() " << result->x() << " != " << origin.x();
         ASSERT_DOUBLE_EQ(result->y(), origin.y()) << "result->y() " << result->y() << " != " << origin.y();
+    }
+
+    class FusionTest : public ::testing::Test
+    {
+    protected:
+        void SetUp() override{};
+        lidar_loc::Fusion fusion = lidar_loc::Fusion(
+            0.9,                     // odometry weight
+            0.1,                     // lidar weight
+            Eigen::Vector2d::Zero(), // landmark position (x, y)
+            {}                       // optional starting pose (set None)
+        );
+        const double THRESHOLD = 0.05; // accepted floating point rounding error
+    };
+
+    TEST_F(FusionTest, YawToQuaternionToYawStaysEqual)
+    {
+        const double yaw_original = 0.123;
+        // create quaternion from angle axis yaw
+        const Eigen::Quaterniond q_yaw(Eigen::AngleAxisd(yaw_original, Eigen::Vector3d::UnitZ()));
+        // convert a pose to a twist to obtain yaw
+        const Eigen::Vector3d twist_out = fusion.pose2twist(Eigen::Vector3d::Zero(), q_yaw);
+        const double yaw_out = twist_out.z();
+        // make sure the two yaw angles are equal
+        ASSERT_NEAR(yaw_original, yaw_out, THRESHOLD);
+    }
+
+    TEST_F(FusionTest, YawToQuaternionToYawStaysEqualWhenNegative)
+    {
+        const double yaw_original = -0.123;
+        // create quaternion from angle axis yaw
+        const Eigen::Quaterniond q_yaw(Eigen::AngleAxisd(yaw_original, Eigen::Vector3d::UnitZ()));
+        // convert a pose to a twist to obtain yaw
+        const Eigen::Vector3d twist_out = fusion.pose2twist(Eigen::Vector3d::Zero(), q_yaw);
+        const double yaw_out = twist_out.z();
+        // make sure the two yaw angles are equal
+        ASSERT_NEAR(yaw_original, yaw_out, THRESHOLD);
+    }
+
+    TEST_F(FusionTest, YawToQuaternionToYawFlipsWhenLargerThanPiRadians)
+    {
+        const double yaw_original = M_PI + 0.123;
+        // now the expected should be a negative angle [0, -pi] because we are leaivng positive y
+        const double yaw_expected = yaw_original - 2 * M_PI;
+        // create quaternion from angle axis yaw
+        const Eigen::Quaterniond q_yaw(Eigen::AngleAxisd(yaw_original, Eigen::Vector3d::UnitZ()));
+        // convert a pose to a twist to obtain yaw
+        const Eigen::Vector3d twist_out = fusion.pose2twist(Eigen::Vector3d::Zero(), q_yaw);
+        const double yaw_out = twist_out.z();
+        // make sure the two yaw angles are equal
+        ASSERT_NEAR(yaw_expected, yaw_out, THRESHOLD);
     }
 
 }
