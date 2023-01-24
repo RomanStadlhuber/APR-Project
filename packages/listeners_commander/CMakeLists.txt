@@ -24,6 +24,14 @@ add_library(${PROJECT_NAME}_circledetection_lib
 target_link_libraries(${PROJECT_NAME}_circledetection_lib
     Eigen3::Eigen
 )
+# ------------- POSE FUSION LIBRARY ----------------
+add_library(${PROJECT_NAME}_fusion_lib
+    src/Fusion.cpp
+)
+target_link_libraries(${PROJECT_NAME}_fusion_lib
+    Eigen3::Eigen
+)
+
 
 # the odometry listener executable
 add_executable(${PROJECT_NAME}_odometry
@@ -58,4 +66,5 @@ target_link_libraries(${PROJECT_NAME}_commander
     PRIVATE
     ${PROJECT_NAME}_shared_mem_lib
     Threads::Threads
+    ${PROJECT_NAME}_fusion_lib
 )

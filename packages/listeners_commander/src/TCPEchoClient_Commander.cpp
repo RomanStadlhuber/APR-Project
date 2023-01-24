@@ -16,9 +16,9 @@
 #include <sys/wait.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
-
+#include <Fusion.hpp>
 #include <shared_memory.hpp>
-//#include "shared_memory.hpp"
+// #include "shared_memory.hpp"
 
 #define BLOCK_SIZE 4096
 
@@ -33,6 +33,9 @@ sem_t *mutex_lidar;
 sem_t *mutex_odo;
 struct SharedMemoryLIDAR *block;
 struct SharedMemoryODO *block2;
+
+// the format used for printing Eigen Vectors and Matrices
+Eigen::IOFormat fmt_clean(4, 0, ", ", "\n", "[", "]");
 
 void signalHandler(int sig)
 {
@@ -51,9 +54,7 @@ void signalHandler(int sig)
 
     close(sock);
     exit(0);
-
-} 
-
+}
 
 void greateSemahpore()
 {
@@ -123,14 +124,13 @@ void greateSemahpore()
         exit(EXIT_FAILURE);
     }
 
-     mutex_odo = sem_open(MUTEX_ODO, O_CREAT, 0777, 1);
+    mutex_odo = sem_open(MUTEX_ODO, O_CREAT, 0777, 1);
     if (mutex_odo == SEM_FAILED)
     {
         // perror("sem_open/consumer");
         printf("open Semaphore failed\n");
         exit(EXIT_FAILURE);
     }
-
 }
 
 struct SharedMemoryLIDAR *readSharedMemoryLidar()
@@ -159,10 +159,9 @@ struct SharedMemoryODO *readSharedMemoryOdometrie()
     return block2;
 }
 
-
 void connectSocket(struct sockaddr_in echoServAddr, unsigned short echoServPort, char *servIP)
 {
-       /* Create a reliable, stream socket using TCP */
+    /* Create a reliable, stream socket using TCP */
     if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
         printf("socket() failed");
 
@@ -175,12 +174,11 @@ void connectSocket(struct sockaddr_in echoServAddr, unsigned short echoServPort,
     /* Establish the connection to the echo server */
     if (connect(sock, (struct sockaddr *)&echoServAddr, sizeof(echoServAddr)) < 0)
         printf("connect() failed");
-
 }
 
 int main(int argc, char *argv[])
 {
-   
+
     struct sockaddr_in echoServAddr;        /* Echo server address */
     unsigned short echoServPort;            /* Echo server port */
     char *servIP;                           /* Server IP address (dotted quad) */
@@ -194,14 +192,25 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
+    // TODO: read frmo argumntes
+    double fusion_weight_odom = 0.9;
+    double fusion_weight_lidar = 0.1;
+    Eigen::Vector2d fusion_landmark_position(0.5, 0.5);
+
+    lidar_loc::Fusion fusion(
+        fusion_weight_odom,
+        fusion_weight_lidar,
+        fusion_landmark_position, // relative to the starting position (we need to set it later)
+        {}                        // starting position is None (can only set it once data is first received)
+    );
+    bool fusion_initial_pose_is_set = false;
+
     servIP = argv[1]; /* First arg: server IP address (dotted quad) */
 
     if (argc == 3)
         echoServPort = atoi(argv[2]); /* Use given port, if any */
     else
         echoServPort = 9999; /* 7 is the well-known port for the echo service */
-
- 
 
     connectSocket(echoServAddr, echoServPort, servIP);
     close(sock);
@@ -211,23 +220,26 @@ int main(int argc, char *argv[])
     greateSemahpore();
 
     signal(SIGINT, signalHandler); // catch SIGINT
-    
+
     sem_wait(init_lidar);
     sem_wait(init_odo);
-  
+
+    Eigen::Vector3d odometry_measurement;
+    lidar_loc::MaybeVector2d lidar_measurement = {};
 
     while (1)
     {
-        
-        
+
         printf("Waiting Lidar...\n");
-                
+
         sem_wait(sem_full_lidar);
         sem_wait(mutex_lidar);
 
         block = readSharedMemoryLidar();
-        
+
         printf("Reading Lidar: \"%d\"\n", block->testData);
+
+        lidar_measurement = block->relative_landmark_position;
 
         detach_memory_block_LIDAR(block);
 
@@ -235,20 +247,48 @@ int main(int argc, char *argv[])
         sem_post(sem_empty_lidar);
 
         printf("Waiting Odo...\n");
-           
+
         sem_wait(sem_full_odo);
         sem_wait(mutex_odo);
 
         block2 = readSharedMemoryOdometrie();
-        
+
+        if (!fusion_initial_pose_is_set)
+        {
+            const auto initial_pose = block2->pose;
+            // convert to (x, y, yaw)
+            const auto initial_pose_as_twist = fusion.pose2twist(
+                initial_pose.position, initial_pose.orientation);
+            // set reference frame for odometry measurements
+            fusion.set_reference(initial_pose_as_twist);
+            // set the flag so we know we're done
+            fusion_initial_pose_is_set = true;
+        }
+        else
+        {
+            auto const curr_odom_pose = block2->pose;
+            odometry_measurement = fusion.pose2twist(curr_odom_pose.position, curr_odom_pose.orientation);
+        }
+
         printf("Reading Odo: \"%d\"\n", block2->testData);
 
         detach_memory_block_Odometrie(block2);
 
-        sem_post(mutex_odo);
-        sem_post(sem_empty_odo);     
+        if (fusion_initial_pose_is_set)
+        {
 
-      
+            // print relative odometry pose
+            std::cout << "odometry:\t" << odometry_measurement.format(fmt_clean) << std::endl;
+            // print lidar landmark pos if available
+            if (lidar_measurement.has_value())
+                std::cout << "lidar" << lidar_measurement->format(fmt_clean) << std::endl;
+
+            Eigen::Vector3d fused_pose = fusion.fuse_to_pose(odometry_measurement, {});
+        }
+
+        sem_post(mutex_odo);
+        sem_post(sem_empty_odo);
+
         //------------------------------------------------------------------------
         // Great Message-String
         float lin = 0;
@@ -264,14 +304,13 @@ int main(int argc, char *argv[])
         //------------------------------------------------------------------------
 
         connectSocket(echoServAddr, echoServPort, servIP);
-       
+
         /* Send the string to the server */
         if (send(sock, echoString, echoStringLen, 0) != echoStringLen)
             printf("send() sent a different number of bytes than expected");
 
         printf("%s\n", echoString);
         close(sock);
-        
     }
 
     sem_close(sem_empty_odo);
