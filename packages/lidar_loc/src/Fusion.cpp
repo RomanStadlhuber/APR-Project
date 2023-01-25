@@ -80,9 +80,12 @@ namespace lidar_loc
 
     Eigen::Vector3d Fusion::pose2twist(const Eigen::Vector3d &tvec, const Eigen::Quaterniond &quat) const
     {
+        // rotate the unit x vector and obtain the new yaw angle
+        const Eigen::Vector3d x_rot = quat._transformVector(Eigen::Vector3d::UnitX());
+        const double yaw = std::atan2(x_rot.y(), x_rot.x());
+
         // const double yaw = quat.toRotationMatrix().eulerAngles(0, 1, 2).z();
-        const double yaw = quat.toRotationMatrix().eulerAngles(0, 1, 2).z();
-        const double cos_half_angle = Eigen::Quaterniond::Identity().dot(quat);
+        // const double cos_half_angle = Eigen::Quaterniond::Identity().dot(quat);
         // const double yaw = 2 * std::acos(cos_half_angle);
 
         return Eigen::Vector3d(tvec.x(), tvec.y(), yaw);
