@@ -11,10 +11,6 @@
 
 struct 
 {
-    // double start_pos_x = 0;
-    // double start_pos_y = 0;
-    // double start_th = 0;
-
     double line_pos_x[2] = {0, 1};
     double line_pos_y[2] = {0, 0};
     double line_th[2] = {0, 0};
@@ -26,6 +22,10 @@ struct
     double square_pos_x[5] = {0.2, -0.11, -0.11, 0.2, 0.2};
     double square_pos_y[5] = {-0.26, -0.26, -0.575, -0.575, -0.26};
     double square_th[5] = {M_PI, M_PI, 0, M_PI};
+
+    double circle_pos_x[9] = {-0.35, -0.225, -0.2, -0.225, -0.35, -0.43, -0.49, -0.43, -0.35};
+    double circle_pos_y[9] = {-0.25, -0.325, -0.4, -0.5, -0.55, -0.5, -0.4, -0.325, -0.25};
+    double circle_th[9] = {0, -M_PI/4, -M_PI/2, -3*M_PI/4, M_PI, 3*M_PI/4, M_PI/2, M_PI/4, 0};
 
 } pose;
 
@@ -52,7 +52,7 @@ class pid_controler
     double kp_lin = 0.3;
     double ki_lin = 0.1;
     double kd_lin = 0.1;
-    double kp_alpha = 1.3;
+    double kp_alpha = 1.1;
     double kp_beta = -0.1;
     double ki_alpha = 0.1;
     double ki_beta = 0.1;

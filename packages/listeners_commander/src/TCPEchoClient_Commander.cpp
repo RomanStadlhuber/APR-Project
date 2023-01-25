@@ -24,6 +24,17 @@
 
 #define BLOCK_SIZE 4096
 
+
+/*
+    TODO: give shape per argument ääh
+    1 = line
+    2 = triangle
+    3 = square
+    4 = circle
+*/
+
+
+
 int sock; /* Socket descriptor */
 sem_t *sem_full_lidar;
 sem_t *sem_empty_lidar;
@@ -239,10 +250,14 @@ int main(int argc, char *argv[])
 
     int goals = 0;
     int curr_goal = 0;
-    goals = 2; // because of line
 
-    // if(arg == line) goals = 2;
-    // if(arg == square) goals = 5;
+    int shape = 1; // because of line
+
+    if(shape == 1) goals = 2;
+    if(shape == 2) goals = 4;
+    if(shape == 3) goals = 5;
+    if(shape == 4) goals = 9;
+
     int cntr = 0;
 
 
@@ -303,13 +318,17 @@ int main(int argc, char *argv[])
                 // std::cout << "lidar" << lidar_measurement->format(fmt_clean) << std::endl;
                 lidar_measurement->format(fmt_clean);
 
+            
             Eigen::Vector3d fused_pose = fusion.fuse_to_pose(odometry_measurement, {});
+
+            //double th = fused_pose.z();
+            //if(th > M_PI) th =  th - 2*M_PI;
 
             // calculate linear and angular velocity 
 
             if (cntr != 0) // to skip first iteration because first position values are fals
             {
-                std::cout << std::endl << std::endl << "Fused Pose (x - y - z) :" << "(" << fused_pose.x() << " - " << fused_pose.y() << " - " << fused_pose.z() << ")" << std::endl << std::endl;
+                std::cout << std::endl << std::endl << "Fused Pose (x - y - z) :" << "(" << fused_pose.x() << " , " << fused_pose.y() << " , " << fused_pose.z()<< " ,  " << ")" << std::endl << std::endl;
 
                 if (PID_cntrl.error(fused_pose.x(), fused_pose.y(), fused_pose.z(), pose.line_pos_x[curr_goal], pose.line_pos_y[curr_goal], pose.line_th[curr_goal]) < 0.08)
                 {
@@ -331,8 +350,8 @@ int main(int argc, char *argv[])
         //------------------------------------------------------------------------
         // great Message-String, Grü Controller Output auf lin und angular
 
-        float lin = vel;
-        float angular = omega;
+        float lin = 0.05;
+        float angular = -0.1;
 
         std::ostringstream oss;
 
