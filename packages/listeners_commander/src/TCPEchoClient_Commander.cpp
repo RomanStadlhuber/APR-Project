@@ -326,6 +326,11 @@ int main(int argc, char *argv[])
 
             // calculate linear and angular velocity 
 
+            // double sec = block2->header.stamp.secs;
+            // double nsec =  block2->header.stamp.nsecs * 0,000000001;
+
+            // std::cout << std::endl << "Sek: \t" << sec+nsec << std::endl << std::endl 
+
             if (cntr != 0) // to skip first iteration because first position values are fals
             {
                 std::cout << std::endl << std::endl << "Fused Pose (x - y - z) :" << "(" << fused_pose.x() << " , " << fused_pose.y() << " , " << fused_pose.z()<< " ,  " << ")" << std::endl << std::endl;
@@ -350,8 +355,8 @@ int main(int argc, char *argv[])
         //------------------------------------------------------------------------
         // great Message-String, Grü Controller Output auf lin und angular
 
-        float lin = 0.05;
-        float angular = -0.1;
+        float lin = 0;
+        float angular = 0.1;
 
         std::ostringstream oss;
 
