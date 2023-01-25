@@ -17,8 +17,6 @@ double pid_controler::error(double current_x, double current_y, double current_t
     if (alpha >= M_PI) alpha = -2*M_PI + alpha;
     if (alpha <= -M_PI) alpha = 2*M_PI + alpha;
 
-    std::cout << "ALPHA: " << alpha << std::endl;
-
     old_beta = beta;
     beta = - current_th - alpha - pos_th;
     if (beta >= M_PI) beta = -2*M_PI + beta;
@@ -52,7 +50,7 @@ double pid_controler::get_angular_velocity()
     d_term_ang = (kd_alpha * (alpha - old_alpha)) / Ts + (kd_beta * (beta - old_beta)) / Ts;
 
 
-    omega = p_term_ang + d_term_ang;
+    omega = p_term_ang; //+ d_term_ang;
     if (omega > MAX_ANGULAR_V)
     omega = MAX_ANGULAR_V;
     if (omega < -MAX_ANGULAR_V)

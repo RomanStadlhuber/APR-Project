@@ -24,17 +24,6 @@
 
 #define BLOCK_SIZE 4096
 
-
-/*
-    TODO: give shape per argument ääh
-    1 = line
-    2 = triangle
-    3 = square
-    4 = circle
-*/
-
-
-
 int sock; /* Socket descriptor */
 sem_t *sem_full_lidar;
 sem_t *sem_empty_lidar;
@@ -251,12 +240,13 @@ int main(int argc, char *argv[])
     int goals = 0;
     int curr_goal = 0;
 
-    int shape = 1; // because of line
+    int shape = 4; 
 
-    if(shape == 1) goals = 2;
-    if(shape == 2) goals = 4;
-    if(shape == 3) goals = 5;
-    if(shape == 4) goals = 9;
+    if(shape == 1) goals = 2;   // Line
+    if(shape == 2) goals = 4;   // Triangle
+    if(shape == 3) goals = 5;   // Square
+    if(shape == 4) goals = 9;   // Circle
+    
 
     int cntr = 0;
 
@@ -264,14 +254,10 @@ int main(int argc, char *argv[])
     while (curr_goal < goals)
     {
 
-        // printf("Waiting Lidar...\n");
-
         sem_wait(sem_full_lidar);
         sem_wait(mutex_lidar);
 
         block = readSharedMemoryLidar();
-
-        // printf("Reading Lidar: \"%d\"\n", block->testData);
 
         lidar_measurement = block->relative_landmark_position;
 
@@ -279,8 +265,6 @@ int main(int argc, char *argv[])
 
         sem_post(mutex_lidar);
         sem_post(sem_empty_lidar);
-
-        // printf("Waiting Odo...\n");
 
         sem_wait(sem_full_odo);
         sem_wait(mutex_odo);
@@ -321,24 +305,51 @@ int main(int argc, char *argv[])
             
             Eigen::Vector3d fused_pose = fusion.fuse_to_pose(odometry_measurement, {});
 
-            //double th = fused_pose.z();
-            //if(th > M_PI) th =  th - 2*M_PI;
-
-            // calculate linear and angular velocity 
-
             // double sec = block2->header.stamp.secs;
             // double nsec =  block2->header.stamp.nsecs * 0,000000001;
-
             // std::cout << std::endl << "Sek: \t" << sec+nsec << std::endl << std::endl 
 
             if (cntr != 0) // to skip first iteration because first position values are fals
             {
-                std::cout << std::endl << std::endl << "Fused Pose (x - y - z) :" << "(" << fused_pose.x() << " , " << fused_pose.y() << " , " << fused_pose.z()<< " ,  " << ")" << std::endl << std::endl;
+                std::cout << std::endl << std::endl << "Fused Pose (x - y - z) :" << "(" << fused_pose.x() << " , " << fused_pose.y() << " , " << fused_pose.z()<< "" << ")" << std::endl << std::endl;
 
-                if (PID_cntrl.error(fused_pose.x(), fused_pose.y(), fused_pose.z(), pose.line_pos_x[curr_goal], pose.line_pos_y[curr_goal], pose.line_th[curr_goal]) < 0.08)
+                if(shape == 1) // Line
                 {
-                    std::cout << "reached goal: " << curr_goal << "(" << pose.line_pos_x[curr_goal] << pose.line_pos_y[curr_goal] << ")" << std::endl;
-                    curr_goal++;
+                    if (PID_cntrl.error(fused_pose.x(), fused_pose.y(), fused_pose.z(), pose.line_pos_x[curr_goal], pose.line_pos_y[curr_goal], pose.line_th[curr_goal]) < 0.08)
+                        {
+                             std::cout << "reached goal: " << curr_goal << "(" << pose.line_pos_x[curr_goal] << pose.line_pos_y[curr_goal] << ")" << std::endl;
+                             curr_goal++;
+
+                        }
+                }
+
+                if(shape == 2) // Triangle
+                {
+                    if (PID_cntrl.error(fused_pose.x(), fused_pose.y(), fused_pose.z(), pose.triangle_pos_x[curr_goal], pose.triangle_pos_y[curr_goal], pose.triangle_th[curr_goal]) < 0.08)
+                        {
+                            std::cout << "reached goal: " << curr_goal << "(" << pose.triangle_pos_x[curr_goal] << pose.triangle_pos_y[curr_goal] << ")" << std::endl;
+                            curr_goal++;
+                        }
+                }
+
+                if(shape == 3) // Square
+                {
+                    if (PID_cntrl.error(fused_pose.x(), fused_pose.y(), fused_pose.z(), pose.square_pos_x[curr_goal], pose.square_pos_y[curr_goal], pose.square_th[curr_goal]) < 0.08)
+                        {
+                            std::cout << "reached goal: " << curr_goal << "(" << pose.square_pos_x[curr_goal] << pose.square_pos_y[curr_goal] << ")" << std::endl;
+                            std::cout << "///////////////////////////////////////////\n ///////////////////////////////////////////" << std::endl;
+                            curr_goal++;
+                        }
+                }
+
+                if(shape == 4) // Circle
+                {
+                    if (PID_cntrl.error(fused_pose.x(), fused_pose.y(), fused_pose.z(), pose.circle_pos_x[curr_goal], pose.circle_pos_y[curr_goal], pose.circle_th[curr_goal]) < 0.08)
+                        {
+                            std::cout << "reached goal: " << curr_goal << "(" << pose.circle_pos_x[curr_goal] << pose.circle_pos_y[curr_goal] << ")" << std::endl;
+                            std::cout << "///////////////////////////////////////////\n ///////////////////////////////////////////" << std::endl;
+                            curr_goal++;
+                        }
                 }
 
                 vel = PID_cntrl.get_linear_velocity();
@@ -355,8 +366,16 @@ int main(int argc, char *argv[])
         //------------------------------------------------------------------------
         // great Message-String, Grü Controller Output auf lin und angular
 
-        float lin = 0;
-        float angular = 0.1;
+        float lin = vel;
+        float angular = omega;
+
+        
+        if (curr_goal == goals) 
+        {
+            angular = 0; 
+            lin = 0;
+        }
+        
 
         std::ostringstream oss;
 
@@ -377,9 +396,9 @@ int main(int argc, char *argv[])
 
         printf("%s\n", echoString);
         close(sock);
+
+
     }
-
-
 
     sem_close(sem_empty_odo);
     sem_close(sem_full_odo);

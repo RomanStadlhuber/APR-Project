@@ -5,7 +5,7 @@
 #include <math.h>
 #include <unistd.h>
 
-#define MAX_LINEAR_VELOCITY 0.22l
+#define MAX_LINEAR_VELOCITY 0.15
 #define MAX_ANGULAR_V 2.84
 
 
@@ -15,17 +15,20 @@ struct
     double line_pos_y[2] = {0, 0};
     double line_th[2] = {0, 0};
 
-    double triangle_pos_x[4] = {0.577, 0.25, 0.41, 0.577};
-    double triangle_pos_y[4] = {-0.557, -0.557, -0.27,  -0.577};
-    double triangle_th[4] = { 3 * M_PI / 4,  M_PI / 2, 0,   3 * M_PI / 4};
+    //                         {P1  P2        P3                P4      }
+    double triangle_pos_x[4] = {0,  0.3,      0.22,             0       };
+    double triangle_pos_y[4] = {0,  0,        0.26,             0       };
+    double triangle_th[4]    = {0,  -0.424,   -0.424-(M_PI/2),  2.292   };
 
-    double square_pos_x[5] = {0.2, -0.11, -0.11, 0.2, 0.2};
-    double square_pos_y[5] = {-0.26, -0.26, -0.575, -0.575, -0.26};
-    double square_th[5] = {M_PI, M_PI, 0, M_PI};
+    //                         P1   P2     P3                P4        P5
+    double square_pos_x[5]   = {0,  0.29,  0.29,             0,        0};
+    double square_pos_y[5]   = {0,  0,     -0.30,            -0.30,    0};
+    double square_th[5]      = {0,  0,     (M_PI/2),         -M_PI,     -(M_PI/2)};
 
-    double circle_pos_x[9] = {-0.35, -0.225, -0.2, -0.225, -0.35, -0.43, -0.49, -0.43, -0.35};
-    double circle_pos_y[9] = {-0.25, -0.325, -0.4, -0.5, -0.55, -0.5, -0.4, -0.325, -0.25};
-    double circle_th[9] = {0, -M_PI/4, -M_PI/2, -3*M_PI/4, M_PI, 3*M_PI/4, M_PI/2, M_PI/4, 0};
+    //
+    double circle_pos_x[9]  = {0, 0.1025,    0.145,     0.1025,     0,      -0.1025,    -0.145,   -0.1025,   0};
+    double circle_pos_y[9]  = {0, -0.0424,   -0.145,    -0.2475,    -0.29,  -0.2475,    -0.145,   -0.0424,   0};
+    double circle_th[9]     = {0, -M_PI/4,   -M_PI/2,   -3*M_PI/4,  M_PI,   3*M_PI/4,   M_PI/2,   M_PI/4,    0};
 
 } pose;
 
