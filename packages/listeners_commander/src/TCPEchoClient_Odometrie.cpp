@@ -278,7 +278,7 @@ int main(int argc, char *argv[])
             printf("recv() failed or connection closed prematurely");
         totalBytesRcvd += bytesRcvd;
         echoBuffer[bytesRcvd] = '\0';
-        printf("%s", echoBuffer);
+        // printf("%s", echoBuffer);
         if (checkMessage(echoBuffer, "--START---", "___END___") == 1)
         {
 

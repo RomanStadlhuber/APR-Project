@@ -18,6 +18,8 @@
 #include <sys/shm.h>
 #include <Fusion.hpp>
 #include <shared_memory.hpp>
+#include <controller.hpp>
+
 // #include "shared_memory.hpp"
 
 #define BLOCK_SIZE 4096
@@ -135,7 +137,7 @@ void greateSemahpore()
 
 struct SharedMemoryLIDAR *readSharedMemoryLidar()
 {
-    printf("Herer...\n");
+    // printf("Herer...\n");
     block = attach_memory_block_LIDAR(FILENAME_LIDAR);
     if (block == NULL)
     {
@@ -148,7 +150,7 @@ struct SharedMemoryLIDAR *readSharedMemoryLidar()
 
 struct SharedMemoryODO *readSharedMemoryOdometrie()
 {
-    printf("Herer...\n");
+    // printf("Herer...\n");
     block2 = attach_memory_block_Odometrie(FILENAME_ODO);
     if (block2 == NULL)
     {
@@ -226,18 +228,35 @@ int main(int argc, char *argv[])
 
     Eigen::Vector3d odometry_measurement;
     lidar_loc::MaybeVector2d lidar_measurement = {};
+    pid_controler PID_cntrl;
 
-    while (1)
+    double current_pos_x = 0;
+    double current_pos_y = 0;
+    double current_th = 0;
+
+    double vel = 0;
+    double omega = 0;
+
+    int goals = 0;
+    int curr_goal = 0;
+    goals = 2; // because of line
+
+    // if(arg == line) goals = 2;
+    // if(arg == square) goals = 5;
+    int cntr = 0;
+
+
+    while (curr_goal < goals)
     {
 
-        printf("Waiting Lidar...\n");
+        // printf("Waiting Lidar...\n");
 
         sem_wait(sem_full_lidar);
         sem_wait(mutex_lidar);
 
         block = readSharedMemoryLidar();
 
-        printf("Reading Lidar: \"%d\"\n", block->testData);
+        // printf("Reading Lidar: \"%d\"\n", block->testData);
 
         lidar_measurement = block->relative_landmark_position;
 
@@ -246,7 +265,7 @@ int main(int argc, char *argv[])
         sem_post(mutex_lidar);
         sem_post(sem_empty_lidar);
 
-        printf("Waiting Odo...\n");
+        // printf("Waiting Odo...\n");
 
         sem_wait(sem_full_odo);
         sem_wait(mutex_odo);
@@ -270,30 +289,53 @@ int main(int argc, char *argv[])
             odometry_measurement = fusion.pose2twist(curr_odom_pose.position, curr_odom_pose.orientation);
         }
 
-        printf("Reading Odo: \"%d\"\n", block2->testData);
+        // printf("Reading Odo: \"%d\"\n", block2->testData);
 
         detach_memory_block_Odometrie(block2);
 
         if (fusion_initial_pose_is_set)
         {
-
             // print relative odometry pose
-            std::cout << "odometry:\t" << odometry_measurement.format(fmt_clean) << std::endl;
+            // std::cout << "odometry:\t" << odometry_measurement.format(fmt_clean) << std::endl;
+            odometry_measurement.format(fmt_clean);
             // print lidar landmark pos if available
             if (lidar_measurement.has_value())
-                std::cout << "lidar" << lidar_measurement->format(fmt_clean) << std::endl;
+                // std::cout << "lidar" << lidar_measurement->format(fmt_clean) << std::endl;
+                lidar_measurement->format(fmt_clean);
 
             Eigen::Vector3d fused_pose = fusion.fuse_to_pose(odometry_measurement, {});
+
+            // calculate linear and angular velocity 
+
+            if (cntr != 0) // to skip first iteration because first position values are fals
+            {
+                std::cout << std::endl << std::endl << "Fused Pose (x - y - z) :" << "(" << fused_pose.x() << " - " << fused_pose.y() << " - " << fused_pose.z() << ")" << std::endl << std::endl;
+
+                if (PID_cntrl.error(fused_pose.x(), fused_pose.y(), fused_pose.z(), pose.line_pos_x[curr_goal], pose.line_pos_y[curr_goal], pose.line_th[curr_goal]) < 0.08)
+                {
+                    std::cout << "reached goal: " << curr_goal << "(" << pose.line_pos_x[curr_goal] << pose.line_pos_y[curr_goal] << ")" << std::endl;
+                    curr_goal++;
+                }
+
+                vel = PID_cntrl.get_linear_velocity();
+                omega = PID_cntrl.get_angular_velocity();
+            
+            }
+            cntr++;
+
         }
 
         sem_post(mutex_odo);
         sem_post(sem_empty_odo);
 
         //------------------------------------------------------------------------
-        // Great Message-String
-        float lin = 0;
-        float angular = 0;
+        // great Message-String, Grü Controller Output auf lin und angular
+
+        float lin = vel;
+        float angular = omega;
+
         std::ostringstream oss;
+
         //"---START---{\"linear\": 0.1, \"angular\": 0.10}___END___\0";
         oss << "---START---{\"linear\": " << lin << ", \"angular\": " << angular << "}___END___\0";
         // std::cout << oss.str();
@@ -312,6 +354,8 @@ int main(int argc, char *argv[])
         printf("%s\n", echoString);
         close(sock);
     }
+
+
 
     sem_close(sem_empty_odo);
     sem_close(sem_full_odo);

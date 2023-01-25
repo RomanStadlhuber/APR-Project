@@ -8,7 +8,7 @@
 #include <string>
 #include <eigen3/Eigen/Dense>
 #include <CircleDetection.hpp>
-#define SIMULATIONS_ON 0
+#define SIMULATIONS_ON 1
 
 // struchts to save the json massage
 struct stampStrc

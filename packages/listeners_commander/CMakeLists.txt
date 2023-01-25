@@ -14,6 +14,10 @@ include_directories(include)
 add_library(${PROJECT_NAME}_shared_mem_lib
     src/shared_memory.cpp
 )
+# controller library
+add_library(${PROJECT_NAME}_controller_lib
+    src/controller.cpp
+)
 
 # ------------- LIDAR CIRCLE DETECTION LIBRARY ----------------
 include_directories(include)
@@ -41,6 +45,7 @@ add_executable(${PROJECT_NAME}_odometry
 target_link_libraries(${PROJECT_NAME}_odometry
     PRIVATE
     ${PROJECT_NAME}_shared_mem_lib
+    ${PROJECT_NAME}_controller_lib
     Threads::Threads
 )
 
@@ -52,6 +57,7 @@ add_executable(${PROJECT_NAME}_lidar
 target_link_libraries(${PROJECT_NAME}_lidar
     PRIVATE
     ${PROJECT_NAME}_shared_mem_lib
+    ${PROJECT_NAME}_controller_lib
     Threads::Threads
     ${PROJECT_NAME}_circledetection_lib # the circle detection is made directly inside the lidar listener
 )
@@ -65,6 +71,7 @@ add_executable(${PROJECT_NAME}_commander
 target_link_libraries(${PROJECT_NAME}_commander
     PRIVATE
     ${PROJECT_NAME}_shared_mem_lib
+    ${PROJECT_NAME}_controller_lib
     Threads::Threads
     ${PROJECT_NAME}_fusion_lib
 )
