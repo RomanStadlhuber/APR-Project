@@ -5,7 +5,7 @@
 #include <math.h>
 #include <unistd.h>
 
-#define MAX_LINEAR_VELOCITY 0.15
+#define MAX_LINEAR_VELOCITY 0.1
 #define MAX_ANGULAR_V 2.84
 
 
@@ -55,7 +55,7 @@ class pid_controler
     double kp_lin = 0.3;
     double ki_lin = 0.1;
     double kd_lin = 0.1;
-    double kp_alpha = 1.1;
+    double kp_alpha = 1.4;
     double kp_beta = -0.1;
     double ki_alpha = 0.1;
     double ki_beta = 0.1;

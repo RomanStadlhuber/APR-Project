@@ -17,8 +17,10 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <Fusion.hpp>
+#include <CircleDetection.hpp>
 #include <shared_memory.hpp>
 #include <controller.hpp>
+#include <cmath>
 
 // #include "shared_memory.hpp"
 
@@ -37,7 +39,7 @@ struct SharedMemoryLIDAR *block;
 struct SharedMemoryODO *block2;
 
 // the format used for printing Eigen Vectors and Matrices
-Eigen::IOFormat fmt_clean(4, 0, ", ", "\n", "[", "]");
+Eigen::IOFormat fmt_clean(4, 0, ", ", " ", "", "", "[", "]");
 
 void signalHandler(int sig)
 {
@@ -197,7 +199,7 @@ int main(int argc, char *argv[])
     // TODO: read frmo argumntes
     double fusion_weight_odom = 0.9;
     double fusion_weight_lidar = 0.1;
-    Eigen::Vector2d fusion_landmark_position(0.5, 0.5);
+    Eigen::Vector2d fusion_landmark_position(0.5, 0.275);
 
     lidar_loc::Fusion fusion(
         fusion_weight_odom,
@@ -285,6 +287,7 @@ int main(int argc, char *argv[])
         else
         {
             auto const curr_odom_pose = block2->pose;
+            
             odometry_measurement = fusion.pose2twist(curr_odom_pose.position, curr_odom_pose.orientation);
         }
 
@@ -298,12 +301,22 @@ int main(int argc, char *argv[])
             // std::cout << "odometry:\t" << odometry_measurement.format(fmt_clean) << std::endl;
             odometry_measurement.format(fmt_clean);
             // print lidar landmark pos if available
-            if (lidar_measurement.has_value())
-                // std::cout << "lidar" << lidar_measurement->format(fmt_clean) << std::endl;
-                lidar_measurement->format(fmt_clean);
+            if (lidar_measurement.has_value()){
+                std::cout << "////////////////////////////////////// \n ------ Got a Landmark position! -----\n"
+                << "\tLandmark position: "
+                << lidar_measurement->format(fmt_clean) << std::endl;
+            }
+                
+            Eigen::Vector3d fused_pose;
 
-            
-            Eigen::Vector3d fused_pose = fusion.fuse_to_pose(odometry_measurement, {});
+            //if(lidar_measurement.has_value() && !std::isnan(lidar_measurement->x()) && !std::isnan(lidar_measurement->y()))
+            //{
+            //  fused_pose = fusion.fuse_to_pose(odometry_measurement, lidar_measurement);
+            //}
+            //else
+            //{ 
+                fused_pose = fusion.fuse_to_pose(odometry_measurement, {});
+            //}
 
             // double sec = block2->header.stamp.secs;
             // double nsec =  block2->header.stamp.nsecs * 0,000000001;
@@ -327,7 +340,8 @@ int main(int argc, char *argv[])
                 {
                     if (PID_cntrl.error(fused_pose.x(), fused_pose.y(), fused_pose.z(), pose.triangle_pos_x[curr_goal], pose.triangle_pos_y[curr_goal], pose.triangle_th[curr_goal]) < 0.08)
                         {
-                            std::cout << "reached goal: " << curr_goal << "(" << pose.triangle_pos_x[curr_goal] << pose.triangle_pos_y[curr_goal] << ")" << std::endl;
+                            std::cout << "reached goal: " << curr_goal << "(" 
+                            << pose.triangle_pos_x[curr_goal] << pose.triangle_pos_y[curr_goal] << ")" << std::endl;
                             curr_goal++;
                         }
                 }
@@ -336,7 +350,8 @@ int main(int argc, char *argv[])
                 {
                     if (PID_cntrl.error(fused_pose.x(), fused_pose.y(), fused_pose.z(), pose.square_pos_x[curr_goal], pose.square_pos_y[curr_goal], pose.square_th[curr_goal]) < 0.08)
                         {
-                            std::cout << "reached goal: " << curr_goal << "(" << pose.square_pos_x[curr_goal] << pose.square_pos_y[curr_goal] << ")" << std::endl;
+                            std::cout << "reached goal: " << curr_goal << "(" 
+                            << pose.square_pos_x[curr_goal] << pose.square_pos_y[curr_goal] << ")" << std::endl;
                             std::cout << "///////////////////////////////////////////\n ///////////////////////////////////////////" << std::endl;
                             curr_goal++;
                         }
@@ -346,7 +361,8 @@ int main(int argc, char *argv[])
                 {
                     if (PID_cntrl.error(fused_pose.x(), fused_pose.y(), fused_pose.z(), pose.circle_pos_x[curr_goal], pose.circle_pos_y[curr_goal], pose.circle_th[curr_goal]) < 0.08)
                         {
-                            std::cout << "reached goal: " << curr_goal << "(" << pose.circle_pos_x[curr_goal] << pose.circle_pos_y[curr_goal] << ")" << std::endl;
+                            std::cout << "reached goal: " << curr_goal << "(" 
+                            << pose.circle_pos_x[curr_goal] << pose.circle_pos_y[curr_goal] << ")" << std::endl;
                             std::cout << "///////////////////////////////////////////\n ///////////////////////////////////////////" << std::endl;
                             curr_goal++;
                         }

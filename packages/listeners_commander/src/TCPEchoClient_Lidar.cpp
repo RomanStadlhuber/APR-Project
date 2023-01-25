@@ -27,7 +27,7 @@ sem_t *init_lidar;
 sem_t *mutex_lidar;
 struct SharedMemoryLIDAR *block;
 
-#define RCVBUFSIZE 8000 /* Size of receive buffer */
+#define RCVBUFSIZE 10000 /* Size of receive buffer */
 
 void signalHandler(int sig)
 {
@@ -153,6 +153,7 @@ std::vector<Eigen::Vector2d> json2Struct(nlohmann::json_abi_v3_11_2::json j_msg_
     j_msg_L["intensities"].get_to(msgL.intensities);
     j_msg_L["ranges"].get_to(msgL.ranges);
 
+
     std::vector<Eigen::Vector2d> lidar_scans;
 
     for (int i = 0; i < 360; i++) // polar coordinates (range, angle) into artesian coordinates (x, y)
@@ -160,10 +161,20 @@ std::vector<Eigen::Vector2d> json2Struct(nlohmann::json_abi_v3_11_2::json j_msg_
         msgL.XYcoordinates.x.push_back(msgL.ranges.at(i) * cos(msgL.angle_min + msgL.angle_increment * i));
         msgL.XYcoordinates.y.push_back(msgL.ranges.at(i) * sin(msgL.angle_min + msgL.angle_increment * i));
 
+        
+
         const Eigen::Vector2d scan_pos(msgL.XYcoordinates.x.at(i), msgL.XYcoordinates.y.at(i));
-        if (scan_pos.norm() <= cutoff)
+       
+        if (0.1 <= msgL.ranges.at(i) && msgL.ranges.at(i) <= 0.8)
+        {
             lidar_scans.push_back(scan_pos);
+            // std::cout <<"Range:" << msgL.ranges.at(i) << " ";
+            std::cout << "X: " << scan_pos.x() << " // Y: " << scan_pos.y() << std::endl;
+
+        }
+        
     }
+    std::cout << "\n\n-+-+- " << lidar_scans.size() << " -+-+-\n";
 
     return lidar_scans;
 }
@@ -333,6 +344,11 @@ int main(int argc, char *argv[])
             const std::vector<Eigen::Vector2d> scans = json2Struct(j_msg_L, LIDAR_SCAN_DISTANCE_CUTOFF); // get parsed json file to struct
             // compute the center from scan data
             const lidar_loc::MaybeVector2d result = circle_detector.compute_center(scans);
+
+            if(result.has_value())
+            {
+                std::cout << "result: \t" << result->x() << " , " << result->y() << std::endl << std::endl;  
+            }
 
             // outputLIDARStruct(msgL);   // Test ouput
 
