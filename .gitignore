@@ -1,3 +1,6 @@
+# simulation workspace
+catkin_ws/
+
 # -------------------------- ROS -----------------------
 # from: https://github.com/github/gitignore/blob/main/ROS.gitignore
 
