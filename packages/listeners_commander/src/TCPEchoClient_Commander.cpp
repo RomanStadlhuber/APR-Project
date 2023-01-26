@@ -182,17 +182,19 @@ int main(int argc, char *argv[])
     char *servIP;                    // Server IP address
     unsigned int bytesRcvd, totalBytesRcvd;
 
-    if ((argc < 2) || (argc > 3)) // Check number of arguments
+    if ((argc < 2) || (argc > 4)) // Check number of arguments
     {
-        fprintf(stderr, "Usage: %s <Server IP> [<Echo Port>]\n",
+        fprintf(stderr, "Usage: %s <Server IP> <landmark-x> <landmark-y>\n",
                 argv[0]);
         exit(1);
     }
 
     // TODO: read frmo argumntes
-    double fusion_weight_odom = 0.9;
-    double fusion_weight_lidar = 0.1;
-    Eigen::Vector2d fusion_landmark_position(0.5, 0.275);
+    double fusion_weight_odom = 0.95;
+    double fusion_weight_lidar = 0.05;
+    // NOTE should be something about ~ x: 0.53, y: 0.22 or so
+    Eigen::Vector2d fusion_landmark_position(std::strtod(argv[2], NULL), std::strtod(argv[3], NULL));
+    std::cout << "setting landmark reference position: " << fusion_landmark_position.format(fmt_clean) << std::endl;
 
     lidar_loc::Fusion fusion(
         fusion_weight_odom,
@@ -285,6 +287,10 @@ int main(int argc, char *argv[])
                 initial_pose.position, initial_pose.orientation);
             // set reference frame for odometry measurements
             fusion.set_reference(initial_pose_as_twist);
+            std::cout << "setting reference frame to x: "
+                      << initial_pose_as_twist.x() << " y: "
+                      << initial_pose_as_twist.y() << " theta: "
+                      << initial_pose_as_twist.z() << std::endl;
             // set the flag so we know we're done
             fusion_initial_pose_is_set = true;
         }
@@ -313,16 +319,7 @@ int main(int argc, char *argv[])
                           << lidar_measurement->format(fmt_clean) << std::endl;
             }
 
-            Eigen::Vector3d fused_pose;
-
-            // if(lidar_measurement.has_value() && !std::isnan(lidar_measurement->x()) && !std::isnan(lidar_measurement->y()))
-            //{
-            //   fused_pose = fusion.fuse_to_pose(odometry_measurement, lidar_measurement);
-            // }
-            // else
-            //{
-            fused_pose = fusion.fuse_to_pose(odometry_measurement, {});
-            //}
+            const Eigen::Vector3d fused_pose = fusion.fuse_to_pose(odometry_measurement, {});
 
             // double sec = block2->header.stamp.secs;
             // double nsec =  block2->header.stamp.nsecs * 0,000000001;
