@@ -1,9 +1,9 @@
-#include <stdio.h>      /* for printf() and fprintf() */
-#include <sys/socket.h> /* for socket(), connect(), send(), and recv() */
-#include <arpa/inet.h>  /* for sockaddr_in and inet_addr() */
-#include <stdlib.h>     /* for atoi() and exit() */
-#include <string.h>     /* for memset() */
-#include <unistd.h>     /* for close() */
+#include <stdio.h>      
+#include <sys/socket.h> 
+#include <arpa/inet.h>  
+#include <stdlib.h>     
+#include <string.h>     
+#include <unistd.h>     
 #include <sys/sem.h>
 #include <iostream>
 #include <semaphore.h>
@@ -18,19 +18,22 @@
 #include <shared_memory.hpp>
 // #include "shared_memory.hpp"
 
-#define BLOCK_SIZE 4096
+//#define BLOCK_SIZE 4096
 
-int sock; /* Socket descriptor */
+int sock; //socket
+//Used Semaphores
 sem_t *sem_full_odo;
 sem_t *sem_empty_odo;
 sem_t *init_odo;
 sem_t *mutex_odo;
+//Used SharedMemory-Block
 struct SharedMemoryODO *block;
 
-#define RCVBUFSIZE 5000 /* Size of receive buffer */
+#define RCVBUFSIZE 5000 //Size of buffer
 
 void signalHandler(int sig)
 {
+    //Close alle sempahores and detach from shared memory block
     printf("Close all\n");
     sem_close(sem_empty_odo);
     sem_close(sem_full_odo);
@@ -46,42 +49,39 @@ void signalHandler(int sig)
     {
         printf("Could not destroy block: %s\n", FILENAME_ODO);
     }
+    //Close socket
     close(sock);
     exit(0);
 }
 
 int attachSemaphores()
 {
-    // Setup some semaphores
+    //Open used semaphores
     sem_full_odo = sem_open(FULL_ODO, 0);
     if (sem_full_odo == SEM_FAILED)
     {
-        printf("open Semaphore failed");
-        // perror("sem_open/producer");
+        printf("open Semaphore \"sem_full_odo\" failed");
         exit(EXIT_FAILURE);
     }
 
     sem_empty_odo = sem_open(EMPTY_ODO, 0);
     if (sem_empty_odo == SEM_FAILED)
     {
-        printf("open Semaphore failed");
-        // perror("sem_open/consumer");
+        printf("open Semaphore \"sem_empty_odo\" failed");
         exit(EXIT_FAILURE);
     }
 
     init_odo = sem_open(SEM_INIT_ODO, 0);
     if (init_odo == SEM_FAILED)
     {
-        printf("open Semaphore failed");
-        // perror("sem_open/consumer");
+        printf("open Semaphore \"init_odo\" failed");
         exit(EXIT_FAILURE);
     }
 
     mutex_odo = sem_open(MUTEX_ODO, 0);
     if (mutex_odo == SEM_FAILED)
     {
-        printf("open Semaphore failed");
-        // perror("sem_open/consumer");
+        printf("open Semaphore \"mutex_odo\" failed");
         exit(EXIT_FAILURE);
     }
 
@@ -94,7 +94,6 @@ void writeSharedMemory(struct SharedMemoryODO *block, struct SharedMemoryODO *da
     if (block == NULL)
     {
         printf("Error: could not get block\n");
-        // return -1;
     }
     // Casper: hier die Daten raufschreiben auf den block für SharedMemroy
     block->testData = data->testData;
@@ -183,91 +182,85 @@ void outputOdomStruct(struct SharedMemoryODO *msgO) // test ouuput of Odom Struc
 int main(int argc, char *argv[])
 {
 
-    struct sockaddr_in echoServAddr; /* Echo server address */
-    unsigned short echoServPort;     /* Echo server port */
-    char *servIP;                    /* Server IP address (dotted quad) */
-    char const *echoString;          /* String to send to echo server */
-    char echoBuffer[RCVBUFSIZE];     /* Buffer for echo string */
-    unsigned int echoStringLen;      /* Length of string to echo */
-    int bytesRcvd, totalBytesRcvd;   /* Bytes read in single recv()
-                                        and total bytes read */
+    struct sockaddr_in echoServAddr; // server address
+    unsigned short echoServPort;     // port
+    char *servIP;                    // Server IP address
+    char echoBuffer[RCVBUFSIZE];     // Buffer
+    int bytesRcvd, totalBytesRcvd;   
 
-    if ((argc < 2) || (argc > 3)) /* Test for correct number of arguments */
+    if ((argc < 2) || (argc > 3)) //Check number of arguments
     {
         fprintf(stderr, "Usage: %s <Server IP> [<Echo Port>]\n",
                 argv[0]);
         exit(1);
     }
 
-    servIP = argv[1];     /* First arg: server IP address (dotted quad) */
-    echoString = argv[2]; /* Second arg: string to echo */
+    servIP = argv[1];     // Get server IP address from argv[1]
+    
 
     if (argc == 3)
-        echoServPort = atoi(argv[2]); /* Use given port, if any */
+        echoServPort = atoi(argv[2]); //Get port address from argv[2]
     else
-        echoServPort = 9998; /* 7 is the well-known port for the echo service */
+        echoServPort = 9998; //default port ardess
 
-    /* Create a reliable, stream socket using TCP */
 
     //---------------------------------------------------------------------------
 
-    /* Create a reliable, stream socket using TCP */
+    //Create socket using TCP for sending to server
     if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
-        printf("socket() failed");
+        printf("socket() for reciving odo data failed");
 
-    /* Construct the server address structure */
-    memset(&echoServAddr, 0, sizeof(echoServAddr));   /* Zero out structure */
-    echoServAddr.sin_family = AF_INET;                /* Internet address family */
-    echoServAddr.sin_addr.s_addr = inet_addr(servIP); /* Server IP address */
-    echoServAddr.sin_port = htons(echoServPort);      /* Server port */
+    //Structure to connect to server
+    memset(&echoServAddr, 0, sizeof(echoServAddr));   
+    echoServAddr.sin_family = AF_INET;                
+    echoServAddr.sin_addr.s_addr = inet_addr(servIP); //IP address from Server
+    echoServAddr.sin_port = htons(echoServPort);      //Port adress
 
-    /* Establish the connection to the echo server */
+    //Connect to echo server
     if (connect(sock, (struct sockaddr *)&echoServAddr, sizeof(echoServAddr)) < 0)
-        printf("connect() failed");
+        printf("connect() for reciving odo data failed");
 
     //---------------------------------------------------------------------------
 
-    attachSemaphores();
+    attachSemaphores(); //attached to all semaphores
     signal(SIGINT, signalHandler); // catch SIGINT
-
+    //initial Sempahore - post to show that the listener is ready
     sem_post(init_odo);
-
+    //Close socket on the live-systme | let the socket open in the simulation
     if (SIMULATIONS_ON == 0)
     {
         close(sock);
     }
-
+    //data for the shared memory
     struct SharedMemoryODO *dataOdom = new SharedMemoryODO();
     dataOdom->testData = 100;
    
 
     //---------------------------------------------------------------------------
 
-    echoStringLen = strlen(echoString); /* Determine input length */
-
-    /* Receive the same string back from the server */
     totalBytesRcvd = 0;
-    int count = 0;
-    printf("Received: "); /* Setup to print the echoed string */
+    int count = 0;  //counter for not correct received messages
+    printf("Start receiving: "); 
     while (1)
     {
-
+        //Wait for commander
         sem_wait(sem_empty_odo);
+        //Wait for mutex - critical section
         sem_wait(mutex_odo);
 
-        if (SIMULATIONS_ON == 0)
+        if (SIMULATIONS_ON == 0) //ckeck if simulation or live-system
         {
-
+            //Create socket using TCP for sending to server
             if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
                 printf("socket() failed");
 
-            /* Construct the server address structure */
-            memset(&echoServAddr, 0, sizeof(echoServAddr));   /* Zero out structure */
-            echoServAddr.sin_family = AF_INET;                /* Internet address family */
-            echoServAddr.sin_addr.s_addr = inet_addr(servIP); /* Server IP address */
-            echoServAddr.sin_port = htons(echoServPort);      /* Server port */
+            //Structure to connect to server
+            memset(&echoServAddr, 0, sizeof(echoServAddr));   
+            echoServAddr.sin_family = AF_INET;                
+            echoServAddr.sin_addr.s_addr = inet_addr(servIP); 
+            echoServAddr.sin_port = htons(echoServPort);      
 
-            /* Establish the connection to the echo server */
+           //Connect to echo server
             if (connect(sock, (struct sockaddr *)&echoServAddr, sizeof(echoServAddr)) < 0)
                 printf("connect() failed");
         }
@@ -301,28 +294,31 @@ int main(int argc, char *argv[])
             count++;
         }
 
-        if (SIMULATIONS_ON == 0)
+        if (SIMULATIONS_ON == 0) //ckeck if simulation or live-system
         {
             close(sock);
         }
-
+        //attach to shared memroy odo and write data to shared memory odo
         writeSharedMemory(block, dataOdom); // Casper: in dieser Funktion werden die Daten des structs auf den SharedMemory geschrieben, bitte diese Funktion anpassen
+        //detach from shared memory
         detach_memory_block_Odometrie(block);
-
+        //Post mutex - writing finished
         sem_post(mutex_odo);
+        //Post lidar/commander - all data written
         sem_post(sem_full_odo);
 
-        printf("\nwaiting\n");
+        printf("waiting for commander\n");
         printf("\n count = %d\n", count);
     }
-    printf("\n"); /* Print a final linefeed */
-
+    printf("\n"); 
+    //Close alle sempahores and detach from shared memory block
     sem_close(sem_empty_odo);
     sem_close(sem_full_odo);
     sem_close(init_odo);
     sem_close(mutex_odo);
 
     detach_memory_block_Odometrie(block);
+     //Close socket
     close(sock);
     exit(0);
 }

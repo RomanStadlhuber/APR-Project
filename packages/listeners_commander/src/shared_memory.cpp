@@ -10,6 +10,7 @@
 
 #define IPC_RESULT_ERROR (-1)
 
+//Template function for shared memory 
 static int get_shared_block(const char *filename, int size)
 {
     key_t key;
@@ -22,7 +23,7 @@ static int get_shared_block(const char *filename, int size)
 
     return shmget(key, size, 0644 | IPC_CREAT);
 }
-
+//Template function for shared memory 
 static int get_shared_block_LIDAR(const char *filename)
 {
     key_t key;
@@ -35,7 +36,7 @@ static int get_shared_block_LIDAR(const char *filename)
 
     return shmget(key, sizeof(struct SharedMemoryLIDAR), 0644 | IPC_CREAT);
 }
-
+//Template function for shared memory 
 static int get_shared_block_Odometrie(const char *filename)
 {
     key_t key;
@@ -48,7 +49,8 @@ static int get_shared_block_Odometrie(const char *filename)
 
     return shmget(key, sizeof(struct SharedMemoryODO), 0644 | IPC_CREAT);
 }
-
+/*
+//Template function for shared memory (not used)
 char *attach_memory_block(const char *filename, int size)
 {
     int shared_block_id = get_shared_block(filename, size);
@@ -67,6 +69,7 @@ char *attach_memory_block(const char *filename, int size)
 
     return result;
 }
+*/
 
 struct SharedMemoryLIDAR *attach_memory_block_LIDAR(const char *filename)
 {
@@ -105,11 +108,13 @@ struct SharedMemoryODO *attach_memory_block_Odometrie(const char *filename)
 
     return result;
 }
-
+/*
+//Template function for shared memory (not used)
 bool detach_memory_block(const char *block)
 {
     return (shmdt(block) != IPC_RESULT_ERROR);
 }
+*/
 
 bool detach_memory_block_LIDAR(struct SharedMemoryLIDAR *block)
 {
@@ -120,6 +125,7 @@ bool detach_memory_block_Odometrie(struct SharedMemoryODO *block)
 {
     return (shmdt(block) != IPC_RESULT_ERROR);
 }
+
 
 bool destroy_memory_block(const char *filename)
 {
