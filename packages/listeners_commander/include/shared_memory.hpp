@@ -8,7 +8,7 @@
 #include <string>
 #include <eigen3/Eigen/Dense>
 #include <CircleDetection.hpp>
-#define SIMULATIONS_ON 0
+#define SIMULATIONS_ON 1
 
 // struchts to save the json massage
 struct stampStrc
@@ -99,25 +99,24 @@ public:
     int testData;
 };
 
-//Template functions for shared memory 
-//char *attach_memory_block(const char *filename, int size); //(not used)
-//bool detach_memory_block(const char *block); //(not used)
-bool destroy_memory_block(const char *filename); //Is used for SharedMemory-block from LIDAR and Odometrie
+// Template functions for shared memory
+// char *attach_memory_block(const char *filename, int size); //(not used)
+// bool detach_memory_block(const char *block); //(not used)
+bool destroy_memory_block(const char *filename); // Is used for SharedMemory-block from LIDAR and Odometrie
 
-//SharedMemeory-block LIDAR
+// SharedMemeory-block LIDAR
 struct SharedMemoryLIDAR *attach_memory_block_LIDAR(const char *filename);
 bool detach_memory_block_LIDAR(struct SharedMemoryLIDAR *block);
-//SharedMemeory-block Odometrie
+// SharedMemeory-block Odometrie
 struct SharedMemoryODO *attach_memory_block_Odometrie(const char *filename);
 bool detach_memory_block_Odometrie(struct SharedMemoryODO *block);
 
-
-//#define BLOCK_SIZE 4096
-//Filenames of our shared memeory
+// #define BLOCK_SIZE 4096
+// Filenames of our shared memeory
 #define FILENAME_LIDAR "src/TCPEchoClient_Lidar.cpp"
 #define FILENAME_ODO "src/TCPEchoClient_Odometrie.cpp"
 
-//Filenames of our semaphores
+// Filenames of our semaphores
 #define FULL_LIDAR "/fullLidar"
 #define FULL_ODO "/fullOdo"
 #define EMPTY_LIDAR "/emptyLidar"
