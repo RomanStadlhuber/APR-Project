@@ -28,6 +28,7 @@ namespace
         const Eigen::Vector2d origin = Eigen::Vector2d(-0.2, 0.5);
         const double radius = 0.125; // [m]
         lidar_loc::CircleDetection circle_detection = lidar_loc::CircleDetection(radius);
+        const double THRESHOLD = 0.05;
     };
 
     TEST_F(CircleDetectionTest, NoScansNoResult)
@@ -105,6 +106,22 @@ namespace
         // check correctness of result
         ASSERT_DOUBLE_EQ(result->x(), origin.x()) << "result->x() " << result->x() << " != " << origin.x();
         ASSERT_DOUBLE_EQ(result->y(), origin.y()) << "result->y() " << result->y() << " != " << origin.y();
+    }
+
+    TEST_F(CircleDetectionTest, CanDetectNaN)
+    {
+        const Eigen::Vector2d test(0.123, std::nan("1"));
+        ASSERT_TRUE(test.hasNaN());
+    }
+
+    TEST_F(CircleDetectionTest, ResultCanBeNaN)
+    {
+        // a scan pair that could not possibly lie on the landmark
+        const lidar_loc::ScanPair pair(
+            Eigen::Vector2d(-3.5, 0.2),
+            Eigen::Vector2d(2.8, -1.5));
+        const lidar_loc::MaybeVector2d result = circle_detection.compute_center({pair.first, pair.second});
+        ASSERT_TRUE(result.has_value()) << "Result is None!";
     }
 
     class FusionTest : public ::testing::Test

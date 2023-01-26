@@ -28,11 +28,14 @@ namespace lidar_loc
         return selected_pairs;
     }
 
-    Eigen::Vector2d CircleDetection::compute_center_from_pair(const ScanPair &scan_pair) const
+    MaybeVector2d CircleDetection::compute_center_from_pair(const ScanPair &scan_pair) const
     {
         // Remark: the vector is drawn from the first to the second point
         auto const diff = scan_pair.second - scan_pair.first;
-        const double perp_height = 0.5 * std::sqrt(4 * std::pow(radius, 2) - std::pow(diff.norm(), 2));
+        const double discriminant = 4 * std::pow(radius, 2) - std::pow(diff.norm(), 2);
+        if (discriminant <= 0.0) // fail the computation if the sqrt result would be imaginary
+            return {};
+        const double perp_height = 0.5 * std::sqrt(discriminant);
         // the anchor point for placing the perpendicular vector
         const Eigen::Vector2d perp_anchor(scan_pair.first + 0.5 * diff);
         // perpendicular vector candidates A and B, find out which is closer
@@ -60,7 +63,8 @@ namespace lidar_loc
         for (auto const scan_pair : scan_pairs)
         {
             auto const pair_center_candidate = compute_center_from_pair(scan_pair);
-            center_candidates.push_back(pair_center_candidate);
+            if (pair_center_candidate.has_value())
+                center_candidates.push_back(*pair_center_candidate);
         }
 
         const Eigen::Vector2d averaged_center = std::accumulate(

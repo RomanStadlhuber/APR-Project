@@ -28,7 +28,7 @@ namespace lidar_loc
         /// get a random selection of (noisy) laser scan pairs that lie on the circle
         std::vector<ScanPair> select_random_pairs(const Scans &scans) const;
         /// compute the _presumed_ center for a single scan pair
-        Eigen::Vector2d compute_center_from_pair(const ScanPair &scan_pair) const;
+        MaybeVector2d compute_center_from_pair(const ScanPair &scan_pair) const;
 
     protected:
     public:
