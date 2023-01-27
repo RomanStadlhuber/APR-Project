@@ -49,7 +49,7 @@ double pid_controler::get_angular_velocity()
     d_term_ang = (kd_alpha * (alpha - old_alpha)) / Ts + (kd_beta * (beta - old_beta)) / Ts;
 
 
-    omega = p_term_ang + d_term_ang;
+    omega = p_term_ang;  // + d_term_ang;
     if (omega > MAX_ANGULAR_V)
     omega = MAX_ANGULAR_V;
     if (omega < -MAX_ANGULAR_V)

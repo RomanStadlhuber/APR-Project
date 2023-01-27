@@ -24,7 +24,7 @@
 
 // #include "shared_memory.hpp"
 
-int sock; // socket
+int sock_com; // socket Commander
 // Used Semaphores
 sem_t *sem_full_lidar;
 sem_t *sem_empty_lidar;
@@ -35,8 +35,8 @@ sem_t *init_odo;
 sem_t *mutex_lidar;
 sem_t *mutex_odo;
 // Used SharedMemory-Blocks
-struct SharedMemoryLIDAR *block;
-struct SharedMemoryODO *block2;
+struct SharedMemoryLIDAR *block_LIDAR;
+struct SharedMemoryODO *block_ODO;
 
 // the format used for printing Eigen Vectors and Matrices
 Eigen::IOFormat fmt_clean(4, 0, ", ", " ", "", "", "[", "]");
@@ -54,10 +54,10 @@ void signalHandler(int sig)
     sem_close(mutex_lidar);
     sem_close(mutex_odo);
 
-    detach_shared_memory_LIDAR(block);
-    detach_shared_memory_Odometrie(block2);
+    detach_shared_memory_LIDAR(block_LIDAR);
+    detach_shared_memory_Odometrie(block_ODO);
     // Close socket
-    close(sock);
+    close(sock_com);
     exit(0);
 }
 
@@ -78,56 +78,56 @@ void createSemahpore()
     if (init_lidar == SEM_FAILED)
     {
 
-        printf("open Semaphore \"init_lidar\" failed\n");
+        printf("open semaphore \"init_lidar\" failed\n");
         exit(EXIT_FAILURE);
     }
 
     init_odo = sem_open(SEM_INIT_ODO, O_CREAT, 0777, 0);
     if (init_odo == SEM_FAILED)
     {
-        printf("open Semaphore \"init_odo\" failed\n");
+        printf("open semaphore \"init_odo\" failed\n");
         exit(EXIT_FAILURE);
     }
 
     sem_full_lidar = sem_open(FULL_LIDAR, O_CREAT, 0777, 0);
     if (sem_full_lidar == SEM_FAILED)
     {
-        printf("open Semaphore \"sem_full_lidar\" failed\n");
+        printf("open semaphore \"sem_full_lidar\" failed\n");
         exit(EXIT_FAILURE);
     }
 
     sem_full_odo = sem_open(FULL_ODO, O_CREAT, 0777, 0);
     if (sem_full_odo == SEM_FAILED)
     {
-        printf("open Semaphore \"sem_full_odo\" failed\n");
+        printf("open semaphore \"sem_full_odo\" failed\n");
         exit(EXIT_FAILURE);
     }
 
     sem_empty_lidar = sem_open(EMPTY_LIDAR, O_CREAT, 0777, 1);
     if (sem_empty_lidar == SEM_FAILED)
     {
-        printf("open Semaphore \"sem_empty_lidar\" failed\n");
+        printf("open semaphore \"sem_empty_lidar\" failed\n");
         exit(EXIT_FAILURE);
     }
 
     sem_empty_odo = sem_open(EMPTY_ODO, O_CREAT, 0777, 1);
     if (sem_empty_odo == SEM_FAILED)
     {
-        printf("open Semaphore \"sem_empty_odo\" failed\n");
+        printf("open semaphore \"sem_empty_odo\" failed\n");
         exit(EXIT_FAILURE);
     }
 
     mutex_lidar = sem_open(MUTEX_LIDAR, O_CREAT, 0777, 1);
     if (mutex_lidar == SEM_FAILED)
     {
-        printf("open Semaphore \"mutex_lidar\" failed\n");
+        printf("open semaphore \"mutex_lidar\" failed\n");
         exit(EXIT_FAILURE);
     }
 
     mutex_odo = sem_open(MUTEX_ODO, O_CREAT, 0777, 1);
     if (mutex_odo == SEM_FAILED)
     {
-        printf("open Semaphore \"mutex_odo\" failed\n");
+        printf("open semaphore \"mutex_odo\" failed\n");
         exit(EXIT_FAILURE);
     }
 
@@ -137,48 +137,47 @@ void createSemahpore()
 struct SharedMemoryLIDAR *readSharedMemoryLidar()
 {
 
-    block = attach_shared_memory_LIDAR(FILENAME_LIDAR);
-    if (block == NULL)
+    block_LIDAR = attach_shared_memory_LIDAR(FILENAME_LIDAR);
+    if (block_LIDAR == NULL)
     {
         printf("Attaching shared memory block LIDAR not successfull\n");
     }
-    return block;
+    return block_LIDAR;
 }
 
 struct SharedMemoryODO *readSharedMemoryOdometrie()
 {
-    block2 = attach_shared_memory_Odometrie(FILENAME_ODO);
-    if (block2 == NULL)
+    block_ODO = attach_shared_memory_Odometrie(FILENAME_ODO);
+    if (block_ODO == NULL)
     {
         printf("Attaching shared memory block Odo not successfull\n");
     }
-    return block2;
+    return block_ODO;
 }
 
-void connectSocket(struct sockaddr_in echoServAddr, unsigned short echoServPort, char *servIP)
+void connectSocket(struct sockaddr_in server_addr, unsigned short server_port, char *server_IP)
 {
     // Create socket using TCP for sending to server
-    if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+    if ((sock_com = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
         printf("creat socket() for sending failed");
 
     // Structure to connect to server
-    memset(&echoServAddr, 0, sizeof(echoServAddr));
-    echoServAddr.sin_family = AF_INET;
-    echoServAddr.sin_addr.s_addr = inet_addr(servIP); // IP address from Server
-    echoServAddr.sin_port = htons(echoServPort);      // Port adress
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = inet_addr(server_IP); // IP address from Server
+    server_addr.sin_port = htons(server_port);      // Port adress
 
     // Connect to echo server
-    if (connect(sock, (struct sockaddr *)&echoServAddr, sizeof(echoServAddr)) < 0)
+    if (connect(sock_com, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
         printf("connect() to server for sending failed");
 }
 
 int main(int argc, char *argv[])
 {
 
-    struct sockaddr_in echoServAddr; // server address
-    unsigned short echoServPort;     // port
-    char *servIP;                    // Server IP address
-    unsigned int bytesRcvd, totalBytesRcvd;
+    struct sockaddr_in server_addr; // server address
+    unsigned short server_port;     // port
+    char *server_IP;                    // Server IP address
 
     if ((argc < 2) || (argc > 4)) // Check number of arguments
     {
@@ -202,17 +201,17 @@ int main(int argc, char *argv[])
     );
     bool fusion_initial_pose_is_set = false;
 
-    servIP = argv[1]; // Get server IP address from argv[1]
+    server_IP = argv[1]; // Get server IP address from argv[1]
 
     if (argc == 3)
-        echoServPort = atoi(argv[2]); // Get port address from argv[2]
+        server_port = atoi(argv[2]); // Get port address from argv[2]
     else
-        echoServPort = 9999; // default port ardess
+        server_port = 9999; // default port ardess
 
     // Connect to server at beginning, to check if its possible
-    connectSocket(echoServAddr, echoServPort, servIP);
+    connectSocket(server_addr, server_port, server_IP);
     // Close socket
-    close(sock);
+    close(sock_com);
 
     //------------------------------------------------------------------------
 
@@ -257,12 +256,12 @@ int main(int argc, char *argv[])
         // Wait for mutex - critical section
         sem_wait(mutex_lidar);
         // attach to shared memroy lidar and read data from shared memory lidar
-        block = readSharedMemoryLidar();
+        block_LIDAR = readSharedMemoryLidar();
 
-        lidar_measurement = block->relative_landmark_position;
+        lidar_measurement = block_LIDAR->relative_landmark_position;
 
         // detach from shared memory
-        detach_shared_memory_LIDAR(block);
+        detach_shared_memory_LIDAR(block_LIDAR);
 
         // Post mutex - reading finished
         sem_post(mutex_lidar);
@@ -275,11 +274,11 @@ int main(int argc, char *argv[])
         sem_wait(mutex_odo);
 
         // attach to shared memroy odometrie and read data from shared memory odometrie
-        block2 = readSharedMemoryOdometrie();
+        block_ODO = readSharedMemoryOdometrie();
 
         if (!fusion_initial_pose_is_set)
         {
-            const auto initial_pose = block2->pose;
+            const auto initial_pose = block_ODO->pose;
             // convert to (x, y, yaw)
             const auto initial_pose_as_twist = fusion.pose2twist(
                 initial_pose.position, initial_pose.orientation);
@@ -294,15 +293,15 @@ int main(int argc, char *argv[])
         }
         else
         {
-            auto const curr_odom_pose = block2->pose;
+            auto const curr_odom_pose = block_ODO->pose;
 
             odometry_measurement = fusion.pose2twist(curr_odom_pose.position, curr_odom_pose.orientation);
         }
 
-        // printf("Reading Odo: \"%d\"\n", block2->testData);
+        // printf("Reading Odo: \"%d\"\n", block_ODO->testData);
 
         // detach from shared Memory
-        detach_shared_memory_Odometrie(block2);
+        detach_shared_memory_Odometrie(block_ODO);
 
         if (fusion_initial_pose_is_set)
         {
@@ -319,8 +318,8 @@ int main(int argc, char *argv[])
 
             const Eigen::Vector3d fused_pose = fusion.fuse_to_pose(odometry_measurement, {});
 
-            // double sec = block2->header.stamp.secs;
-            // double nsec =  block2->header.stamp.nsecs * 0,000000001;
+            // double sec = block_ODO->header.stamp.secs;
+            // double nsec =  block_ODO->header.stamp.nsecs * 0,000000001;
             // std::cout << std::endl << "Sek: \t" << sec+nsec << std::endl << std::endl
 
             if (cntr != 0) // to skip first iteration because first position values are fals
@@ -400,23 +399,22 @@ int main(int argc, char *argv[])
 
         //"---START---{\"linear\": 0.1, \"angular\": 0.10}___END___\0";
         oss << "---START---{\"linear\": " << lin << ", \"angular\": " << angular << "}___END___\0";
-        // std::cout << oss.str();
-        std::string str = oss.str();
-        const char *echoString = str.c_str();
-        unsigned int echoStringLen = strlen(echoString);
+        std::string send_str = oss.str();
+        const char *msg = send_str.c_str();
+        unsigned int msgStringLen = strlen(msg);
 
         //------------------------------------------------------------------------
 
         // Connect to socket bevor sending
-        connectSocket(echoServAddr, echoServPort, servIP);
+        connectSocket(server_addr, server_port, server_IP);
 
         // Send string
-        if (send(sock, echoString, echoStringLen, 0) != echoStringLen)
+        if (send(sock_com, msg, msgStringLen, 0) != msgStringLen)
             printf("send() not correct");
 
-        printf("%s\n", echoString);
+        printf("%s\n", msg);
         // Close socket again after sending
-        close(sock);
+        close(sock_com);
     }
 
     // Close alle sempahores and detach from shared memory blocks
@@ -429,9 +427,9 @@ int main(int argc, char *argv[])
     sem_close(mutex_lidar);
     sem_close(mutex_odo);
 
-    detach_shared_memory_LIDAR(block);
-    detach_shared_memory_Odometrie(block2);
+    detach_shared_memory_LIDAR(block_LIDAR);
+    detach_shared_memory_Odometrie(block_ODO);
     // Close socket
-    close(sock);
+    close(sock_com);
     exit(0);
 }

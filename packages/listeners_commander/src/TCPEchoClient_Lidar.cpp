@@ -18,7 +18,7 @@
 #include <shared_memory.hpp>
 // #include "shared_memory.hpp"
 
-int sock; //socket
+int sock_listener; //socket listener
 //Used Semaphores
 sem_t *sem_full_lidar;
 sem_t *sem_empty_lidar;
@@ -27,7 +27,7 @@ sem_t *mutex_lidar;
 //Used SharedMemory-Block
 struct SharedMemoryLIDAR *block;
 
-#define RCVBUFSIZE 10000 //Size of buffer
+#define BUFFER_SIZE 10000 //Size of buffer
 
 void signalHandler(int sig)
 {
@@ -48,7 +48,7 @@ void signalHandler(int sig)
         printf("Could not remove shared memory block: %s\n", FILENAME_LIDAR);
     }
     //Close socket
-    close(sock);
+    close(sock_listener);
     exit(0);
 }
 
@@ -58,28 +58,28 @@ int attachSemaphore()
     sem_full_lidar = sem_open(FULL_LIDAR, 0);
     if (sem_full_lidar == SEM_FAILED)
     {
-        printf("open Semaphore \"sem_full_lidar\" failed");
+        printf("open semaphore \"sem_full_lidar\" failed");
         exit(EXIT_FAILURE);
     }
 
     sem_empty_lidar = sem_open(EMPTY_LIDAR, 0);
     if (sem_empty_lidar == SEM_FAILED)
     {
-        printf("open Semaphore \"sem_empty_lidar\" failed");
+        printf("open semaphore \"sem_empty_lidar\" failed");
         exit(EXIT_FAILURE);
     }
 
     init_lidar = sem_open(SEM_INIT_LIDAR, 0);
     if (init_lidar == SEM_FAILED)
     {
-        printf("open Semaphore \"init_lidar\" failed");
+        printf("open semaphore \"init_lidar\" failed");
         exit(EXIT_FAILURE);
     }
 
     mutex_lidar = sem_open(MUTEX_LIDAR, 0);
     if (mutex_lidar == SEM_FAILED)
     {
-        printf("open Semaphore \"mutex_lidar\" failed");
+        printf("open semaphore \"mutex_lidar\" failed");
         exit(EXIT_FAILURE);
     }
 
@@ -231,11 +231,11 @@ int main(int argc, char *argv[])
     // the utility class used to detect the relative landmark position
     lidar_loc ::CircleDetection circle_detector = lidar_loc::CircleDetection(LANDMARK_RADIUS);
 
-    struct sockaddr_in echoServAddr; // server address
-    unsigned short echoServPort;     // port
-    char *servIP;                    // Server IP address
-    char echoBuffer[RCVBUFSIZE];     // Buffer
-    int bytesRcvd, totalBytesRcvd;   
+    struct sockaddr_in server_addr; // server address
+    unsigned short server_port;     // port
+    char *server_IP;                    // Server IP address
+    char recv_buffer[BUFFER_SIZE];     // Buffer
+    int bytes_recivied, total_bytes_recivied;   
 
     if ((argc < 2) || (argc > 4)) //Check number of arguments
     {
@@ -244,25 +244,25 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    servIP = argv[1];     // Get server IP address from argv[1]
+    server_IP = argv[1];     // Get server IP address from argv[1]
     
 
     // the port for lidar data remains the same
-    echoServPort = 9997;
+    server_port = 9997;
 
     //---------------------------------------------------------------------------
     //Create socket using TCP for sending to server
-    if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+    if ((sock_listener = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
         printf("socket() for reciving lidar data  failed");
 
     //Structure to connect to server
-    memset(&echoServAddr, 0, sizeof(echoServAddr));   
-    echoServAddr.sin_family = AF_INET;                
-    echoServAddr.sin_addr.s_addr = inet_addr(servIP);   //IP address from Server
-    echoServAddr.sin_port = htons(echoServPort);        //Port adress
+    memset(&server_addr, 0, sizeof(server_addr));   
+    server_addr.sin_family = AF_INET;                
+    server_addr.sin_addr.s_addr = inet_addr(server_IP);   //IP address from Server
+    server_addr.sin_port = htons(server_port);        //Port adress
 
     //Connect to echo server
-    if (connect(sock, (struct sockaddr *)&echoServAddr, sizeof(echoServAddr)) < 0)
+    if (connect(sock_listener, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
         printf("connect() for reciving lidar data failed");
 
     //---------------------------------------------------------------------------
@@ -275,7 +275,7 @@ int main(int argc, char *argv[])
     //Close socket on the live-systme | let the socket open in the simulation
     if (SIMULATIONS_ON == 0)
     {
-        close(sock);
+        close(sock_listener);
     }
     //data for the shared memory
     struct SharedMemoryLIDAR *test = new SharedMemoryLIDAR();
@@ -285,7 +285,7 @@ int main(int argc, char *argv[])
 
     
     int count = 0;  //counter for not correct received messages
-    totalBytesRcvd = 0;
+    total_bytes_recivied = 0;
 
     printf("Start receiving: "); 
     while (1)
@@ -299,35 +299,35 @@ int main(int argc, char *argv[])
         {
 
             //Create socket using TCP for sending to server
-            if ((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+            if ((sock_listener = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
                 printf("socket() for reciving lidar data failed");
 
             //Structure to connect to server
-            memset(&echoServAddr, 0, sizeof(echoServAddr));   
-            echoServAddr.sin_family = AF_INET;                
-            echoServAddr.sin_addr.s_addr = inet_addr(servIP); 
-            echoServAddr.sin_port = htons(echoServPort);      
+            memset(&server_addr, 0, sizeof(server_addr));   
+            server_addr.sin_family = AF_INET;                
+            server_addr.sin_addr.s_addr = inet_addr(server_IP); 
+            server_addr.sin_port = htons(server_port);      
 
             //Connect to echo server
-            if (connect(sock, (struct sockaddr *)&echoServAddr, sizeof(echoServAddr)) < 0)
+            if (connect(sock_listener, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
                 printf("connect() for reciving lidar data failed");
         }
 
         // nanosleep((const struct timespec[]){{0, 500000000L}}, NULL);
 
-        if ((bytesRcvd = recv(sock, echoBuffer, RCVBUFSIZE - 1, 0)) <= 0)
+        if ((bytes_recivied = recv(sock_listener, recv_buffer, BUFFER_SIZE - 1, 0)) <= 0)
             printf("recv() failed or connection closed prematurely");
-        totalBytesRcvd += bytesRcvd;  
-        echoBuffer[bytesRcvd] = '\0'; 
-        // printf("%s", echoBuffer);      
-        // std::cout << echoBuffer << std::endl;
+        total_bytes_recivied += bytes_recivied;  
+        recv_buffer[bytes_recivied] = '\0'; 
+        // printf("%s", recv_buffer);      
+        // std::cout << recv_buffer << std::endl;
         std::cout << "______________________________-" << std::endl;
 
-        if (checkMessage(echoBuffer, "--START---", "___END___") == 1)
+        if (checkMessage(recv_buffer, "--START---", "___END___") == 1)
         {
-            // std::cout << getMessage(echoBuffer, "--START---", "___END___") << std::endl;
+            // std::cout << getMessage(recv_buffer, "--START---", "___END___") << std::endl;
 
-            std::string tempStrng = getMessage(echoBuffer, "--START---", "___END___"); // get message to string for parsing
+            std::string tempStrng = getMessage(recv_buffer, "--START---", "___END___"); // get message to string for parsing
 
             tempStrng.erase(0, 10);                // delete --START--- for parsing
             tempStrng.erase(tempStrng.size() - 9); // delete ___END___  for parsing
@@ -346,8 +346,6 @@ int main(int argc, char *argv[])
 
             // outputLIDARStruct(msgL);   // Test ouput
 
-            // TODO: shared memobry
-
             test->testData++;
             test->relative_landmark_position = result;
         }
@@ -358,7 +356,7 @@ int main(int argc, char *argv[])
 
         if (SIMULATIONS_ON == 0) //ckeck if simulation or live-system
         {
-            close(sock);
+            close(sock_listener);
         }
         //attach to shared memroy lidar and write data to shared memory lidar
         writeSharedMemory(block, test); // Casper: in dieser Funktion werden die Daten des structs auf den SharedMemory geschrieben, bitte diese Funktion anpassen
@@ -381,6 +379,6 @@ int main(int argc, char *argv[])
 
     detach_shared_memory_LIDAR(block);
     //Close socket
-    close(sock);
+    close(sock_listener);
     exit(0);
 }

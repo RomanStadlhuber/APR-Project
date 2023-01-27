@@ -9,6 +9,7 @@ cmake --build build/
 ```
 
 cd ~/packages/listeners_commander/
+
 With test Simulation:
 
 ```
@@ -38,6 +39,12 @@ Live System:
 1) Commander
 2) Listener Lidar
 3) Listener Odometrie
+
+#Landmarks:
+Line:       x = 0.5     y = 0.24
+Circle:     x = 0.35    y = 0.25
+Square:     x = -0.23   y = -0.19
+Triangle:   x = -0.8    y = -0.48
 ___________________________________________________________________________________________________________________________
 
 
