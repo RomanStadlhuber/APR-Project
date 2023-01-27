@@ -93,7 +93,7 @@ void writeSharedMemory(struct SharedMemoryODO *block, struct SharedMemoryODO *da
     {
         printf("Attaching shared memory block Odo not successfull\n");
     }
-    // Casper: hier die Daten raufschreiben auf den block für SharedMemroy
+    
     block->testData = data->testData;
     block->header = data->header;
     block->pose = data->pose;
@@ -136,6 +136,7 @@ std::string getMessage(const std::string &buffer, const std::string &start_delim
 void json2Struct(nlohmann::json_abi_v3_11_2::json j_msg_O, struct SharedMemoryODO *msgO) // get parsed json file to struct
 {
 
+    // get the values from the j_msg_O String into the msgO Struct wit 'get_to()'
     j_msg_O["header"]["seq"].get_to(msgO->header.seq);
     j_msg_O["header"]["stamp"]["secs"].get_to(msgO->header.stamp.secs);
     j_msg_O["header"]["stamp"]["nsecs"].get_to(msgO->header.stamp.nsecs);
@@ -267,12 +268,14 @@ int main(int argc, char *argv[])
         if (checkMessage(recv_buffer, "--START---", "___END___") == 1)
         {
 
-            std::string tempStrng = getMessage(recv_buffer, "--START---", "___END___"); // get message to string for parsing
+            // get message to string for parsing
+            std::string tempStrng = getMessage(recv_buffer, "--START---", "___END___"); 
 
             tempStrng.erase(0, 10);                // delete --START--- for parsing
             tempStrng.erase(tempStrng.size() - 9); // delete ___END___  for parsing
 
-            nlohmann::json_abi_v3_11_2::json j_msg_O = nlohmann::json_abi_v3_11_2::json::parse(tempStrng); // parse tempStrng to j_msg_O
+            // parse tempStrng to j_msg_O with nlohmann library
+            nlohmann::json_abi_v3_11_2::json j_msg_O = nlohmann::json_abi_v3_11_2::json::parse(tempStrng); 
 
             json2Struct(j_msg_O, dataOdom); // get parsed json file to struct
 
@@ -290,7 +293,7 @@ int main(int argc, char *argv[])
             close(sock_listener);
         }
         // attach to shared memroy odo and write data to shared memory odo
-        writeSharedMemory(block, dataOdom); // Casper: in dieser Funktion werden die Daten des structs auf den SharedMemory geschrieben, bitte diese Funktion anpassen
+        writeSharedMemory(block, dataOdom); 
         // detach from shared memory
         detach_shared_memory_Odometrie(block);
         // Post mutex - writing finished

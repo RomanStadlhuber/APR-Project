@@ -93,7 +93,7 @@ void writeSharedMemory(struct SharedMemoryLIDAR *block, struct SharedMemoryLIDAR
     {
         printf("Attaching shared memory block LIDAR not successfull\n");
     }
-    // Casper: hier die Daten raufschreiben auf den block für SharedMemroy
+
     block->testData = data->testData;
     block->relative_landmark_position = data->relative_landmark_position;
     printf("Writing: \"%d\"\n", block->testData);
@@ -136,6 +136,7 @@ std::vector<Eigen::Vector2d> json2Struct(nlohmann::json_abi_v3_11_2::json j_msg_
 {
     struct msgLIDAR msgL;
 
+    // get the values from the j_msg_L String into the msgLIDAR Struct wit 'get_to()'
     j_msg_L["header"]["seq"].get_to(msgL.header.seq);
     j_msg_L["header"]["stamp"]["secs"].get_to(msgL.header.stamp.secs);
     j_msg_L["header"]["stamp"]["nsecs"].get_to(msgL.header.stamp.nsecs);
@@ -153,19 +154,17 @@ std::vector<Eigen::Vector2d> json2Struct(nlohmann::json_abi_v3_11_2::json j_msg_
 
     std::vector<Eigen::Vector2d> lidar_scans;
 
-    for (int i = 0; i < 360; i++) // polar coordinates (range, angle) into artesian coordinates (x, y)
+    for (int i = 0; i < 360; i++) // transform polar coordinates (range, angle) into artesian coordinates (x, y)
     {
         msgL.XYcoordinates.x.push_back(msgL.ranges.at(i) * cos(msgL.angle_min + msgL.angle_increment * i));
         msgL.XYcoordinates.y.push_back(msgL.ranges.at(i) * sin(msgL.angle_min + msgL.angle_increment * i));
 
-        
-
         const Eigen::Vector2d scan_pos(msgL.XYcoordinates.x.at(i), msgL.XYcoordinates.y.at(i));
        
+        // check X and Y Values
         if (0.1 <= msgL.ranges.at(i) && msgL.ranges.at(i) <= 0.8)
         {
             lidar_scans.push_back(scan_pos);
-            // std::cout <<"Range:" << msgL.ranges.at(i) << " ";
             std::cout << "X: " << scan_pos.x() << " // Y: " << scan_pos.y() << std::endl;
 
         }
@@ -176,7 +175,7 @@ std::vector<Eigen::Vector2d> json2Struct(nlohmann::json_abi_v3_11_2::json j_msg_
     return lidar_scans;
 }
 
-void outputLIDARStruct(struct msgLIDAR msgL) // test ouuput of Odom Struct
+void outputLIDARStruct(struct msgLIDAR msgL) // test the output from the Odom Struct
 {
     std::cout << std::endl
               << std::endl
@@ -327,12 +326,14 @@ int main(int argc, char *argv[])
         {
             // std::cout << getMessage(recv_buffer, "--START---", "___END___") << std::endl;
 
-            std::string tempStrng = getMessage(recv_buffer, "--START---", "___END___"); // get message to string for parsing
+            // get message to string for parsing
+            std::string tempStrng = getMessage(recv_buffer, "--START---", "___END___"); 
 
             tempStrng.erase(0, 10);                // delete --START--- for parsing
             tempStrng.erase(tempStrng.size() - 9); // delete ___END___  for parsing
 
-            nlohmann::json_abi_v3_11_2::json j_msg_L = nlohmann::json_abi_v3_11_2::json::parse(tempStrng); // parse tempStrng to j_msg_L
+            // parse tempStrng to j_msg_L with nlohmann library
+            nlohmann::json_abi_v3_11_2::json j_msg_L = nlohmann::json_abi_v3_11_2::json::parse(tempStrng); 
 
             // load all lidar scans in the form relative (x, y) that are closer than the cutoff
             const std::vector<Eigen::Vector2d> scans = json2Struct(j_msg_L, LIDAR_SCAN_DISTANCE_CUTOFF); // get parsed json file to struct
@@ -359,7 +360,7 @@ int main(int argc, char *argv[])
             close(sock_listener);
         }
         //attach to shared memroy lidar and write data to shared memory lidar
-        writeSharedMemory(block, test); // Casper: in dieser Funktion werden die Daten des structs auf den SharedMemory geschrieben, bitte diese Funktion anpassen
+        writeSharedMemory(block, test); // 
         //detach from shared memory
         detach_shared_memory_LIDAR(block);
         //Post mutex - writing finished

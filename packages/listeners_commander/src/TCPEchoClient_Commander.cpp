@@ -236,6 +236,7 @@ int main(int argc, char *argv[])
     int goals = 0;
     int curr_goal = 0;
 
+    // set shape for turtlebot:
     int shape = 1;
 
     if (shape == 1)
@@ -318,12 +319,9 @@ int main(int argc, char *argv[])
 
             const Eigen::Vector3d fused_pose = fusion.fuse_to_pose(odometry_measurement, {});
 
-            // double sec = block_ODO->header.stamp.secs;
-            // double nsec =  block_ODO->header.stamp.nsecs * 0,000000001;
-            // std::cout << std::endl << "Sek: \t" << sec+nsec << std::endl << std::endl
-
             if (cntr != 0) // to skip first iteration because first position values are fals
             {
+                // control output on console:
                 std::cout << std::endl
                           << std::endl
                           << "Fused Pose (x - y - z) :"
@@ -356,7 +354,6 @@ int main(int argc, char *argv[])
                     {
                         std::cout << "reached goal: " << curr_goal << "("
                                   << pose.square_pos_x[curr_goal] << pose.square_pos_y[curr_goal] << ")" << std::endl;
-                        std::cout << "///////////////////////////////////////////\n ///////////////////////////////////////////" << std::endl;
                         curr_goal++;
                     }
                 }
@@ -367,7 +364,6 @@ int main(int argc, char *argv[])
                     {
                         std::cout << "reached goal: " << curr_goal << "("
                                   << pose.circle_pos_x[curr_goal] << pose.circle_pos_y[curr_goal] << ")" << std::endl;
-                        std::cout << "///////////////////////////////////////////\n ///////////////////////////////////////////" << std::endl;
                         curr_goal++;
                     }
                 }
@@ -383,8 +379,9 @@ int main(int argc, char *argv[])
         sem_post(sem_empty_odo);
 
         //------------------------------------------------------------------------
-        // great Message-String, Grü Controller Output auf lin und angular
+        // creat Message-String
 
+        // set angular and linear velocitiy:
         float lin = vel;
         float angular = omega;
 

@@ -41,6 +41,15 @@ Live System (Parameter SIMULATION_ON set to 0 in "shared_memory.hpp"):
 3) Listener Odometrie
 ```
 
+Set Shapes:
+```
+in `TCPEchoClient_Commander.cpp` set `int Shape` variable for:
+Line:       1
+Triangle:   2
+Square:     3
+Circle:     4
+```
+
 Landmarks:
 ```
 Line:       x = 0.5     y = 0.24
@@ -67,10 +76,14 @@ Sempahores:
 [4] https://pages.cs.wisc.edu/~remzi/OSTEP/threads-sema.pdf
 ```
 
-
 TCP-IP Connection:
 ```
 [1] Moodle-Course: Advanced Programming for Robots (MRE-VZ-1-WS2022-vAPR)
+```
+
+Json-Parser:
+```
+https://github.com/nlohmann/json
 ```
 
 Controller:
@@ -79,3 +92,4 @@ Controller:
 [6]https://www.arxterra.com/lecture-6-pid-controllers/
 [7]https://tttapa.github.io/Pages/Arduino/Control-Theory/Motor-Fader/PID-Cpp-Implementation.html
 ```
+
