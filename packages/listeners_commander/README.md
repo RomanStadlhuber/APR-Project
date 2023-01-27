@@ -7,17 +7,16 @@ mkdir build
 cmake -S . -B build/
 cmake --build build/
 ```
+Path: cd ~/packages/listeners_commander/
 
-cd ~/packages/listeners_commander/
-
-With test Simulation:
+With test Simulation (Parameter SIMULATION_ON set to 1 in "shared_memory.hpp"):
 
 ```
 #Coammander (with correct IP-Adress of Simulation)
-./build/interface_commander 192.168.0.192 9999
+./build/interface_commander 192.168.0.192 <landmark-x> <landmark-y>
 #Listeners(with correct IP-Adress of Simulation)
-./build/interface_lidar 192.168.0.192 9997
-./build/interface_odometry 192.168.0.192 9998
+./build/interface_lidar 192.168.0.192 
+./build/interface_odometry 192.168.0.192 
 ```
 #starting order:
 1) Simulation
@@ -26,10 +25,10 @@ With test Simulation:
 4) Listener Odometrie
 
 
-Live System:
+Live System (Parameter SIMULATION_ON set to 0 in "shared_memory.hpp"):
 
 ```
-#Coammander (with correct IP-Adress of Simulation)
+#Commander (with correct IP-Adress of Simulation)
 ./build/interface_commander  <Server IP> <landmark-x> <landmark-y>
 #Listeners(with correct IP-Adress of Simulation)
 ./build/interface_lidar <Server IP> [<Landmark Radius [m]>] [<Max. Scan Range [m]>]
@@ -42,7 +41,7 @@ Live System:
 3) Listener Odometrie
 ```
 
-#Landmarks:
+Landmarks:
 ```
 Line:       x = 0.5     y = 0.24
 Circle:     x = 0.35    y = 0.25
