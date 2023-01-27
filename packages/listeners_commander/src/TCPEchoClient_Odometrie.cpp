@@ -18,8 +18,6 @@
 #include <shared_memory.hpp>
 // #include "shared_memory.hpp"
 
-// #define BLOCK_SIZE 4096
-
 int sock; // socket
 // Used Semaphores
 sem_t *sem_full_odo;
@@ -40,14 +38,14 @@ void signalHandler(int sig)
     sem_close(init_odo);
     sem_close(mutex_odo);
 
-    detach_memory_block_Odometrie(block);
-    if (destroy_memory_block(FILENAME_ODO))
+    detach_shared_memory_Odometrie(block);
+    if (remove_shared_memory(FILENAME_ODO))
     {
-        printf("Destroyed block: %s\n", FILENAME_ODO);
+        printf("Removed shared memory block: %s\n", FILENAME_ODO);
     }
     else
     {
-        printf("Could not destroy block: %s\n", FILENAME_ODO);
+        printf("Could not remove shared memory block: %s\n", FILENAME_ODO);
     }
     // Close socket
     close(sock);
@@ -90,10 +88,10 @@ int attachSemaphores()
 
 void writeSharedMemory(struct SharedMemoryODO *block, struct SharedMemoryODO *data)
 {
-    block = attach_memory_block_Odometrie(FILENAME_ODO);
+    block = attach_shared_memory_Odometrie(FILENAME_ODO);
     if (block == NULL)
     {
-        printf("Error: could not get block\n");
+        printf("Attaching shared memory block Odo not successfull\n");
     }
     // Casper: hier die Daten raufschreiben auf den block für SharedMemroy
     block->testData = data->testData;
@@ -107,7 +105,7 @@ int checkMessage(const std::string &buffer, const std::string &start_delimimter,
 
     if (buffer.length() <= start_delimimter.length() || buffer.length() <= ende_delimimter.length())
     {
-        printf("Buffer lenght");
+        printf("Error Buffer lenght");
         return 0;
     }
     unsigned pos_start_delimimter = buffer.find(start_delimimter, 0);
@@ -294,7 +292,7 @@ int main(int argc, char *argv[])
         // attach to shared memroy odo and write data to shared memory odo
         writeSharedMemory(block, dataOdom); // Casper: in dieser Funktion werden die Daten des structs auf den SharedMemory geschrieben, bitte diese Funktion anpassen
         // detach from shared memory
-        detach_memory_block_Odometrie(block);
+        detach_shared_memory_Odometrie(block);
         // Post mutex - writing finished
         sem_post(mutex_odo);
         // Post lidar/commander - all data written
@@ -310,7 +308,7 @@ int main(int argc, char *argv[])
     sem_close(init_odo);
     sem_close(mutex_odo);
 
-    detach_memory_block_Odometrie(block);
+    detach_shared_memory_Odometrie(block);
     // Close socket
     close(sock);
     exit(0);

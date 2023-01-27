@@ -24,8 +24,6 @@
 
 // #include "shared_memory.hpp"
 
-// #define BLOCK_SIZE 4096
-
 int sock; // socket
 // Used Semaphores
 sem_t *sem_full_lidar;
@@ -56,14 +54,14 @@ void signalHandler(int sig)
     sem_close(mutex_lidar);
     sem_close(mutex_odo);
 
-    detach_memory_block_LIDAR(block);
-    detach_memory_block_Odometrie(block2);
+    detach_shared_memory_LIDAR(block);
+    detach_shared_memory_Odometrie(block2);
     // Close socket
     close(sock);
     exit(0);
 }
 
-void greateSemahpore()
+void createSemahpore()
 {
     // Unlink all sempahores bevor starting!
     sem_unlink(EMPTY_LIDAR);
@@ -139,20 +137,20 @@ void greateSemahpore()
 struct SharedMemoryLIDAR *readSharedMemoryLidar()
 {
 
-    block = attach_memory_block_LIDAR(FILENAME_LIDAR);
+    block = attach_shared_memory_LIDAR(FILENAME_LIDAR);
     if (block == NULL)
     {
-        printf("Error: could not get block\n");
+        printf("Attaching shared memory block LIDAR not successfull\n");
     }
     return block;
 }
 
 struct SharedMemoryODO *readSharedMemoryOdometrie()
 {
-    block2 = attach_memory_block_Odometrie(FILENAME_ODO);
+    block2 = attach_shared_memory_Odometrie(FILENAME_ODO);
     if (block2 == NULL)
     {
-        printf("Error: could not get block\n");
+        printf("Attaching shared memory block Odo not successfull\n");
     }
     return block2;
 }
@@ -218,7 +216,7 @@ int main(int argc, char *argv[])
 
     //------------------------------------------------------------------------
 
-    greateSemahpore(); // Creat all semaphores
+    createSemahpore(); // Creat all semaphores
 
     signal(SIGINT, signalHandler); // catch SIGINT
     // initial Sempahores to check if all programms are ready
@@ -239,7 +237,7 @@ int main(int argc, char *argv[])
     int goals = 0;
     int curr_goal = 0;
 
-    int shape = 4;
+    int shape = 1;
 
     if (shape == 1)
         goals = 2; // Line
@@ -264,7 +262,7 @@ int main(int argc, char *argv[])
         lidar_measurement = block->relative_landmark_position;
 
         // detach from shared memory
-        detach_memory_block_LIDAR(block);
+        detach_shared_memory_LIDAR(block);
 
         // Post mutex - reading finished
         sem_post(mutex_lidar);
@@ -304,7 +302,7 @@ int main(int argc, char *argv[])
         // printf("Reading Odo: \"%d\"\n", block2->testData);
 
         // detach from shared Memory
-        detach_memory_block_Odometrie(block2);
+        detach_shared_memory_Odometrie(block2);
 
         if (fusion_initial_pose_is_set)
         {
@@ -431,8 +429,8 @@ int main(int argc, char *argv[])
     sem_close(mutex_lidar);
     sem_close(mutex_odo);
 
-    detach_memory_block_LIDAR(block);
-    detach_memory_block_Odometrie(block2);
+    detach_shared_memory_LIDAR(block);
+    detach_shared_memory_Odometrie(block2);
     // Close socket
     close(sock);
     exit(0);

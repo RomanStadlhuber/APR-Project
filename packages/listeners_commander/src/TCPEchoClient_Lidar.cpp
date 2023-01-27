@@ -18,8 +18,6 @@
 #include <shared_memory.hpp>
 // #include "shared_memory.hpp"
 
-//#define BLOCK_SIZE 4096
-
 int sock; //socket
 //Used Semaphores
 sem_t *sem_full_lidar;
@@ -40,21 +38,21 @@ void signalHandler(int sig)
     sem_close(init_lidar);
     sem_close(mutex_lidar);
 
-    detach_memory_block_LIDAR(block);
-    if (destroy_memory_block(FILENAME_LIDAR))
+    detach_shared_memory_LIDAR(block);
+    if (remove_shared_memory(FILENAME_LIDAR))
     {
-        printf("Destroyed block: %s\n", FILENAME_LIDAR);
+        printf("Removed shared memory block: %s\n", FILENAME_LIDAR);
     }
     else
     {
-        printf("Could not destroy block: %s\n", FILENAME_LIDAR);
+        printf("Could not remove shared memory block: %s\n", FILENAME_LIDAR);
     }
     //Close socket
     close(sock);
     exit(0);
 }
 
-int attachSemahpore()
+int attachSemaphore()
 {
     //Open used semaphores
     sem_full_lidar = sem_open(FULL_LIDAR, 0);
@@ -90,10 +88,10 @@ int attachSemahpore()
 
 void writeSharedMemory(struct SharedMemoryLIDAR *block, struct SharedMemoryLIDAR *data)
 {
-    block = attach_memory_block_LIDAR(FILENAME_LIDAR);
+    block = attach_shared_memory_LIDAR(FILENAME_LIDAR);
     if (block == NULL)
     {
-        printf("Error: could not get block\n");
+        printf("Attaching shared memory block LIDAR not successfull\n");
     }
     // Casper: hier die Daten raufschreiben auf den block für SharedMemroy
     block->testData = data->testData;
@@ -106,7 +104,7 @@ int checkMessage(const std::string &buffer, const std::string &start_delimimter,
 
     if (buffer.length() <= start_delimimter.length() || buffer.length() <= ende_delimimter.length())
     {
-        printf("Buffer lenght");
+        printf("Error buffer lenght");
         return 0;
     }
     unsigned pos_start_delimimter = buffer.find(start_delimimter, 0);
@@ -269,7 +267,7 @@ int main(int argc, char *argv[])
 
     //---------------------------------------------------------------------------
 
-    attachSemahpore(); //attached to all semaphores
+    attachSemaphore(); //attached to all semaphores
     signal(SIGINT, signalHandler); // catch SIGINT
     //initial Sempahore - post to show that the listener is ready
     sem_post(init_lidar);
@@ -365,7 +363,7 @@ int main(int argc, char *argv[])
         //attach to shared memroy lidar and write data to shared memory lidar
         writeSharedMemory(block, test); // Casper: in dieser Funktion werden die Daten des structs auf den SharedMemory geschrieben, bitte diese Funktion anpassen
         //detach from shared memory
-        detach_memory_block_LIDAR(block);
+        detach_shared_memory_LIDAR(block);
         //Post mutex - writing finished
         sem_post(mutex_lidar);
         //Post lidar/commander - all data written
@@ -381,7 +379,7 @@ int main(int argc, char *argv[])
     sem_close(init_lidar);
     sem_close(mutex_lidar);
 
-    detach_memory_block_LIDAR(block);
+    detach_shared_memory_LIDAR(block);
     //Close socket
     close(sock);
     exit(0);
