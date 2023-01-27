@@ -190,8 +190,8 @@ int main(int argc, char *argv[])
     }
 
     // TODO: read frmo argumntes
-    double fusion_weight_odom = 0.95;
-    double fusion_weight_lidar = 0.05;
+    double fusion_weight_odom = 0.5;
+    double fusion_weight_lidar = 0.5;
     // NOTE should be something about ~ x: 0.53, y: 0.22 or so
     Eigen::Vector2d fusion_landmark_position(std::strtod(argv[2], NULL), std::strtod(argv[3], NULL));
     std::cout << "setting landmark reference position: " << fusion_landmark_position.format(fmt_clean) << std::endl;
@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
     int goals = 0;
     int curr_goal = 0;
 
-    int shape = 2;
+    int shape = 4;
 
     if (shape == 1)
         goals = 2; // Line
