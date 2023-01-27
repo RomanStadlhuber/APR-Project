@@ -66,13 +66,13 @@ REFERENCES/QUELLEN:
 Shared Memory:
 ```
 [1] Moodle-Course: Advanced Programming for Robots (MRE-VZ-1-WS2022-vAPR)
-[2] Jacob Sorber: How to Set up Shared Memory in Your Linux and MacOS Programs. (shmget, shmat, shmdt, shmctl, ftok) - (https://www.youtube.com/watch?v=WgVSq-sgHOc&list=PLvXqHwX2HFAI-zCw8JQyWBysP1VSr2Plw&index=1&t=539s)
+[2] Jacob Sorber: How to Set up Shared Memory in Your Linux and MacOS Programs. (shmget, shmat, shmdt, shmctl, ftok) - (https://youtu.be/WgVSq-sgHOc)
 ```
 
 Sempahores:
 ```
 [1] Moodle-Course: Advanced Programming for Robots (MRE-VZ-1-WS2022-vAPR)
-[3] Jacob Sorber: What is a semaphore? How do they work? (Example in C) - (https://www.youtube.com/watch?v=ukM_zzrIeXs&list=PLvXqHwX2HFAI-zCw8JQyWBysP1VSr2Plw&index=2)
+[3] Jacob Sorber: What is a semaphore? How do they work? (Example in C) - (https://youtu.be/ukM_zzrIeXs)
 [4] https://pages.cs.wisc.edu/~remzi/OSTEP/threads-sema.pdf
 ```
 
