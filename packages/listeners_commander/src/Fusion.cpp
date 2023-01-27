@@ -18,17 +18,16 @@ namespace lidar_loc
     }
 
     Eigen::Vector3d Fusion::fuse_to_pose(
-        const Eigen::Vector3d &twist_odom, const std::optional<Eigen::Vector2d> &lidar_obersvation)
+        const Eigen::Vector3d &twist_odom, const std::optional<Eigen::Vector2d> &lidar_observation)
     {
         // at first, convert the odometry twist to the reference frame
         const Eigen::Vector3d twist_est_odom = get_reference_twist(twist_odom);
 
-        if (!lidar_obersvation.has_value())
+        if (!lidar_observation.has_value())
         {
             this->pose = twist_est_odom;
             return this->pose;
         }
-
         /**
          * position estimate from lidar = landmark position - scan delta in global position
          * fused position = odom weight * odom estimate + lidar weight * lidar estimate
@@ -41,42 +40,19 @@ namespace lidar_loc
         const double heading_est_odom = twist_est_odom.z();
         // the assumed frame orientation at the fused position
         const Eigen::Rotation2D R_last(last_heading);
+        // the relative landmark position in the world frame
+        const Eigen::Vector2d delta_robot_landmark = R_last.toRotationMatrix() * (*lidar_observation);
         // the pose estimate of the lidar data
-        const Eigen::Vector2d pos_est_lidar =
-            this->landmark_position - R_last.inverse().toRotationMatrix() * (*lidar_obersvation);
+        const Eigen::Vector2d pos_est_lidar = this->landmark_position - delta_robot_landmark;
         // the fused position
         const Eigen::Vector2d fused_pos_est =
             this->weight_odom * pos_est_odom + this->weight_lidar * pos_est_lidar;
 
-        /**
-         * -- then estimate the landmark angle using the fused position --
-         * -- fuse the estimated and observed landmark angle --
-         * compute the distance between landmark and fused position
-         * transfer that distance vector to the robot frame, rotating by the odom heading
-         * compute the observed landmark angle
-         * fuse the relative angle using the same weights
-         */
-
-        // model the observed lidar delta vector based on the odometry estimate
-        const Eigen::Vector2d lidar_est_odom = R_last.inverse() * (this->landmark_position - fused_pos_est);
-        // an estimated observation angle based on odometry data
-        const double beta_est_odom = std::atan2(lidar_est_odom.y(), lidar_est_odom.x());
-        // the real observation angle from lidar data
-        const double beta_est_lidar = std::atan2(lidar_obersvation->y(), lidar_obersvation->x());
-        // fuse the relative angle to the landmark
-        const double beta_fused =
-            this->weight_odom * beta_est_odom + this->weight_lidar * beta_est_lidar;
-
-        /**
-         * compute the fused heading as the difference:
-         * global frame angle estimate using fused position - robot frame landmark angle
-         */
-
-        /**
-         * since the difference between fused and assumed heading is the same as between fused
-         * and assumed (modelled) relative landmark angle, we get this:
-         */
-        const double fused_heading = last_heading + beta_fused - beta_est_odom;
+        const double heading_lidar =
+            std::atan2(delta_robot_landmark.y(), delta_robot_landmark.x()) - // the relative angle in the world frame
+            std::atan2(lidar_observation->y(), lidar_observation->x());      // the relative angle in the robot frame
+        const double heading_odom = twist_odom.z();
+        const double fused_heading = this->weight_odom * heading_odom + this->weight_lidar * heading_lidar;
         // combine fusion data to a twist in reference frame
         const Eigen::Vector3d fused_twist(fused_pos_est.x(), fused_pos_est.y(), fused_heading);
         this->pose = fused_twist;
