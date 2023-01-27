@@ -1,0 +1,2 @@
+/usr/bin/ar qc libinterface_shared_mem_lib.a  CMakeFiles/interface_shared_mem_lib.dir/src/shared_memory.cpp.o
+/usr/bin/ranlib libinterface_shared_mem_lib.a

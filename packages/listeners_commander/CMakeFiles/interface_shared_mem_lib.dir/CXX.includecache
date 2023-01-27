@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/grilli/MF_Turtles/APR-Project/packages/listeners_commander/src/shared_memory.cpp
+stdio.h
+-
+stdlib.h
+-
+string.h
+-
+sys/types.h
+-
+sys/ipc.h
+-
+sys/shm.h
+-
+semaphore.h
+-
+shared_memory.hpp
+-
+
+include/shared_memory.hpp
+stdbool.h
+-
+

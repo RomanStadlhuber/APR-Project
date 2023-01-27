@@ -1,0 +1,38 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/grilli/MF_Turtles/APR-Project/packages/listeners_commander/src/TCPEchoClient_Lidar.cpp
+stdio.h
+-
+sys/socket.h
+-
+arpa/inet.h
+-
+stdlib.h
+-
+string.h
+-
+unistd.h
+-
+sys/sem.h
+-
+iostream
+-
+semaphore.h
+-
+fcntl.h
+-
+signal.h
+-
+shared_memory.hpp
+-
+
+include/shared_memory.hpp
+stdbool.h
+-
+

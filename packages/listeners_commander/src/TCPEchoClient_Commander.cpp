@@ -388,8 +388,8 @@ int main(int argc, char *argv[])
         //------------------------------------------------------------------------
         // great Message-String, Grü Controller Output auf lin und angular
 
-        float lin = 0;     // vel;
-        float angular = 0; // omega;
+        float lin = vel;
+        float angular = omega;
 
         if (curr_goal == goals)
         {
