@@ -1,11 +1,10 @@
 #include <controller.hpp>
-
 #include <iostream>
 #include <math.h>
 #include <unistd.h>
 
 
-double pid_controler::error(double current_x, double current_y, double current_th, double pos_x, double pos_y, double pos_th)
+double pid_controler::error(double current_x, double current_y, double current_th, double pos_x, double pos_y, double pos_th) //error is stored in the class members
 {
     delta_x = pos_x - current_x;
     delta_y = pos_y - current_y;
@@ -22,7 +21,7 @@ double pid_controler::error(double current_x, double current_y, double current_t
     if (beta >= M_PI) beta = -2*M_PI + beta;
     if (beta <= -M_PI) beta = -2*M_PI + beta;
 
-    return rho;
+    return rho; //returns the distanze to goal, to check if a goal is reached
 }
 
 double pid_controler::get_linear_velocity()
@@ -50,7 +49,7 @@ double pid_controler::get_angular_velocity()
     d_term_ang = (kd_alpha * (alpha - old_alpha)) / Ts + (kd_beta * (beta - old_beta)) / Ts;
 
 
-    omega = p_term_ang; //+ d_term_ang;
+    omega = p_term_ang + d_term_ang;
     if (omega > MAX_ANGULAR_V)
     omega = MAX_ANGULAR_V;
     if (omega < -MAX_ANGULAR_V)

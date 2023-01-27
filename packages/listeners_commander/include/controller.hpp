@@ -9,7 +9,7 @@
 #define MAX_ANGULAR_V 2.84
 
 
-struct 
+struct // goals for different shapes
 {
     double line_pos_x[2] = {0, 1};
     double line_pos_y[2] = {0, 0};
@@ -32,7 +32,13 @@ struct
 
 } pose;
 
-// void chatterCallback(const nav_msgs::Odometry::ConstPtr); // nur für ROS
+// void chatterCallback(const nav_msgs::Odometry::ConstPtr); // was used for the simulation. Gives the ROS odom.
+
+
+// creates a PID controler Object. 
+//For the linear velocity a p controler was enough. 
+//For the angular velocity was a pd controler implemented. 
+//The i term was implemented but not used.
 
 class pid_controler
 {
@@ -55,11 +61,11 @@ class pid_controler
     double kp_lin = 0.3;
     double ki_lin = 0.1;
     double kd_lin = 0.1;
-    double kp_alpha = 1.4;
+    double kp_alpha = 1.4; // relativly high p value, so the robot turns faster in the goal direction
     double kp_beta = -0.1;
     double ki_alpha = 0.1;
     double ki_beta = 0.1;
-    double kd_alpha = 0.8;
+    double kd_alpha = 0.8; // relativly high d value, for less overdrive
     double kd_beta = 0.05;
     double delta_x;
     double delta_y;

@@ -29,10 +29,10 @@ Live System:
 
 ```
 #Coammander (with correct IP-Adress of Simulation)
-./build/interface_commander 'IP-Turtlbot' 9999
+./build/interface_commander  <Server IP> <landmark-x> <landmark-y>
 #Listeners(with correct IP-Adress of Simulation)
-./build/interface_lidar 'IP-Turtlbot' 9997
-./build/interface_odometry 'IP-Turtlbot' 9998
+./build/interface_lidar <Server IP> [<Landmark Radius [m]>] [<Max. Scan Range [m]>]
+./build/interface_odometry  <Server IP> [<Echo Port>]
 ```
 #starting order:
 1) Commander
@@ -56,3 +56,8 @@ Sempahores:
 
 TCP-IP Connection:
 [1] Moodle-Course: Advanced Programming for Robots (MRE-VZ-1-WS2022-vAPR)
+
+Controller:
+[1]Moodle-Course: MOR (BMR 6)
+[2s]https://www.arxterra.com/lecture-6-pid-controllers/
+[3]https://tttapa.github.io/Pages/Arduino/Control-Theory/Motor-Fader/PID-Cpp-Implementation.html
